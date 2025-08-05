@@ -8,15 +8,17 @@ const client = new Client({
   database: "Stats",
 });
 
-client.connect();
+export default client;
 
-client.query(`select * from team`, (err, res)=>{
-    if (!err) {
-        console.log(res.rows);
-    } else {
-        console.log(err.message);
-    }
-    client.end();
-})
+// client.connect();
+
+// client.query(`select * from team`, (err, res)=>{
+//     if (!err) {
+//         console.log(res.rows);
+//     } else {
+//         console.log(err.message);
+//     }
+//     client.end();
+// })
 
 
