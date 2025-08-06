@@ -4,51 +4,40 @@
 export const teamQueries = {
   // CREATE
   createTeam: `
-    INSERT INTO teams (city, name, season, sport)
-    VALUES ($1, $2, $3, $4)
+    INSERT INTO team (city, name, level, season, sport)
+    VALUES ($1, $2, $3, $4, $5)
     RETURNING *
   `,
 
   // READ
   getAllTeams: `
-    SELECT * FROM teams
+    SELECT * FROM team
     ORDER BY season DESC, name ASC
   `,
 
   getTeamById: `
-    SELECT * FROM teams 
+    SELECT * FROM team 
     WHERE id = $1
   `,
 
   getTeamWithPlayers: `
     SELECT 
-      t.*,
-      json_agg(
-        json_build_object(
-          'id', p.id,
-          'name', p.name,
-          'position', p.position,
-          'jersey_number', p.jersey_number,
-          'age', p.age
-        )
-      ) FILTER (WHERE p.id IS NOT NULL) as players
-    FROM teams t
-    LEFT JOIN players p ON t.id = p.team_id
+      t.*
+    FROM team t
     WHERE t.id = $1
-    GROUP BY t.id
   `,
 
   // UPDATE
   updateTeam: `
-    UPDATE teams 
-    SET city = $2, name = $3, season = $4, sport = $5, updated_at = CURRENT_TIMESTAMP
+    UPDATE team 
+    SET city = $2, name = $3, level = $4, season = $5, sport = $6, updated_at = CURRENT_TIMESTAMP
     WHERE id = $1
     RETURNING *
   `,
 
   // DELETE
   deleteTeam: `
-    DELETE FROM teams 
+    DELETE FROM team 
     WHERE id = $1
     RETURNING *
   `
@@ -58,8 +47,8 @@ export const teamQueries = {
 export const playerQueries = {
   // CREATE
   createPlayer: `
-    INSERT INTO players (first_name, last_name, team_id, jersey_number, position)
-    VALUES ($1, $2, $3, $4, $5)
+    INSERT INTO player (first_name, last_name, date_of_birth)
+    VALUES ($1, $2, $3)
     RETURNING *
   `,
 
@@ -67,20 +56,16 @@ export const playerQueries = {
   getAllPlayers: `
     SELECT 
       p.*,
-      t.name as team_name,
       CONCAT(p.first_name, ' ', p.last_name) as full_name
-    FROM players p
-    LEFT JOIN teams t ON p.team_id = t.id
-    ORDER BY t.name ASC, p.jersey_number ASC
+    FROM player p
+    ORDER BY p.last_name ASC, p.first_name ASC
   `,
 
   getPlayerById: `
     SELECT 
       p.*,
-      t.name as team_name,
       CONCAT(p.first_name, ' ', p.last_name) as full_name
-    FROM players p
-    LEFT JOIN teams t ON p.team_id = t.id
+    FROM player p
     WHERE p.id = $1
   `,
 
@@ -88,15 +73,13 @@ export const playerQueries = {
     SELECT 
       p.*,
       CONCAT(p.first_name, ' ', p.last_name) as full_name
-    FROM players p
-    WHERE team_id = $1
-    ORDER BY p.jersey_number ASC
+    FROM player p
+    ORDER BY p.last_name ASC, p.first_name ASC
   `,
 
   getPlayerWithStats: `
     SELECT 
       p.*,
-      t.name as team_name,
       CONCAT(p.first_name, ' ', p.last_name) as full_name,
       json_agg(
         json_build_object(
@@ -108,25 +91,23 @@ export const playerQueries = {
           'minutes_played', ps.minutes_played
         )
       ) FILTER (WHERE ps.id IS NOT NULL) as stats
-    FROM players p
-    LEFT JOIN teams t ON p.team_id = t.id
-    LEFT JOIN player_stats ps ON p.id = ps.player_id
+    FROM player p
+    LEFT JOIN player_stat ps ON p.id = ps.player_id
     WHERE p.id = $1
-    GROUP BY p.id, t.name
+    GROUP BY p.id
   `,
 
   // UPDATE
   updatePlayer: `
-    UPDATE players 
-    SET first_name = $2, last_name = $3, team_id = $4, jersey_number = $5, 
-        position = $6, updated_at = CURRENT_TIMESTAMP
+    UPDATE player 
+    SET first_name = $2, last_name = $3, date_of_birth = $4, updated_at = CURRENT_TIMESTAMP
     WHERE id = $1
     RETURNING *
   `,
 
   // DELETE
   deletePlayer: `
-    DELETE FROM players 
+    DELETE FROM player 
     WHERE id = $1
     RETURNING *
   `
@@ -136,7 +117,7 @@ export const playerQueries = {
 export const statsQueries = {
   // CREATE
   createPlayerStats: `
-    INSERT INTO player_stats (player_id, season, games_played, goals, assists, yellow_cards, red_cards, minutes_played)
+    INSERT INTO player_stat (player_id, season, games_played, goals, assists, yellow_cards, red_cards, minutes_played)
     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
     RETURNING *
   `,
@@ -147,14 +128,14 @@ export const statsQueries = {
       ps.*,
       p.name as player_name,
       t.name as team_name
-    FROM player_stats ps
-    JOIN players p ON ps.player_id = p.id
-    JOIN teams t ON p.team_id = t.id
+    FROM player_stat ps
+    JOIN player p ON ps.player_id = p.id
+    JOIN team t ON p.team_id = t.id
     ORDER BY ps.created_at DESC
   `,
 
   getStatsByPlayer: `
-    SELECT * FROM player_stats 
+    SELECT * FROM player_stat 
     WHERE player_id = $1
     ORDER BY season DESC
   `,
@@ -164,16 +145,16 @@ export const statsQueries = {
       ps.*,
       p.name as player_name,
       t.name as team_name
-    FROM player_stats ps
-    JOIN players p ON ps.player_id = p.id
-    JOIN teams t ON p.team_id = t.id
+    FROM player_stat ps
+    JOIN player p ON ps.player_id = p.id
+    JOIN team t ON p.team_id = t.id
     WHERE ps.season = $1
     ORDER BY ps.goals DESC
   `,
 
   // UPDATE
   updatePlayerStats: `
-    UPDATE player_stats 
+    UPDATE player_stat 
     SET games_played = $3, goals = $4, assists = $5, yellow_cards = $6, 
         red_cards = $7, minutes_played = $8, updated_at = CURRENT_TIMESTAMP
     WHERE player_id = $1 AND season = $2
@@ -182,7 +163,7 @@ export const statsQueries = {
 
   // DELETE
   deletePlayerStats: `
-    DELETE FROM player_stats 
+    DELETE FROM player_stat 
     WHERE id = $1
     RETURNING *
   `
@@ -207,9 +188,9 @@ export const utilityQueries = {
       ps.goals,
       ps.assists,
       ps.games_played
-    FROM player_stats ps
-    JOIN players p ON ps.player_id = p.id
-    JOIN teams t ON p.team_id = t.id
+    FROM player_stat ps
+    JOIN player p ON ps.player_id = p.id
+    JOIN team t ON p.team_id = t.id
     WHERE ps.season = $1
     ORDER BY ps.goals DESC, ps.assists DESC
     LIMIT $2
@@ -219,13 +200,13 @@ export const utilityQueries = {
   getTeamStats: `
     SELECT 
       t.name as team_name,
-      COUNT(p.id) as total_players,
+      COUNT(p.id) as total_player,
       AVG(p.age) as average_age,
       SUM(ps.goals) as total_goals,
       SUM(ps.assists) as total_assists
-    FROM teams t
-    LEFT JOIN players p ON t.id = p.team_id
-    LEFT JOIN player_stats ps ON p.id = ps.player_id AND ps.season = $1
+    FROM team t
+    LEFT JOIN player p ON t.id = p.team_id
+    LEFT JOIN player_stat ps ON p.id = ps.player_id AND ps.season = $1
     GROUP BY t.id, t.name
     ORDER BY total_goals DESC
   `

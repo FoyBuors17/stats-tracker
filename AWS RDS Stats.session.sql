@@ -17,10 +17,12 @@ CREATE TABLE IF NOT EXISTS player (
     id SERIAL PRIMARY KEY,
     first_name VARCHAR(50) NOT NULL,
     last_name VARCHAR(50) NOT NULL,
-    date_of_birth DATE NOT NULL,
+    team_id INTEGER REFERENCES team(id) ON DELETE CASCADE,
+    jersey_number INTEGER NOT NULL,
+    position VARCHAR(20) NOT NULL CHECK (position IN ('goalie', 'forward', 'defence')),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(first_name, last_name, date_of_birth) -- Prevent duplicate first_name/last_name/date_of_birth combinations
+    UNIQUE(team_id, jersey_number) -- Prevent duplicate jersey numbers within same team
 );
 -- Create player_stats table
 CREATE TABLE IF NOT EXISTS player_stat (
@@ -77,53 +79,73 @@ VALUES (
 INSERT INTO player (
         first_name,
         last_name,
-        date_of_birth
+        team_id,
+        jersey_number,
+        position
     )
 VALUES (
         'Marcus',
         'Rashford',
-        '1997-10-31'
+        1,
+        10,
+        'forward'
     ),
     (
         'David',
         'de Gea',
-        '1990-11-07'
+        1,
+        1,
+        'goalie'
     ),
     (
         'Harry',
         'Maguire',
-        '1993-03-05'
+        1,
+        5,
+        'defence'
     ),
     (
         'Robert',
         'Lewandowski',
-        '1988-08-21'
+        2,
+        9,
+        'forward'
     ),
     (
         'Marc-André',
         'ter Stegen',
-        '1992-04-30'
+        2,
+        1,
+        'goalie'
     ),
     (
         'Gerard',
         'Piqué',
-        '1987-02-02'
+        2,
+        3,
+        'defence'
     ),
     (
         'Karim',
         'Benzema',
-        '1987-12-19'
+        3,
+        9,
+        'forward'
     ),
     (
         'Thibaut',
         'Courtois',
-        '1992-05-11'
+        3,
+        1,
+        'goalie'
     ),
     (
         'Sergio',
         'Ramos',
-        '1986-03-30'
-    ) ON CONFLICT (first_name, last_name, date_of_birth) DO NOTHING;
+        3,
+        4,
+        'defence'
+    ) ON CONFLICT (team_id, jersey_number) DO NOTHING;
 INSERT INTO player_stat (
         player_id,
         season,

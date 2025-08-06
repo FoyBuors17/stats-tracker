@@ -7,9 +7,27 @@ const TeamsComponent = ({ onTeamSelect }) => {
   const [error, setError] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [editingTeam, setEditingTeam] = useState(null);
+
+  // Helper function to get sport emoji
+  const getSportEmoji = (sport) => {
+    const sportEmojis = {
+      hockey: "🏒",
+      soccer: "⚽",
+      basketball: "🏀",
+      football: "🏈",
+      baseball: "⚾",
+      tennis: "🎾",
+      volleyball: "🏐",
+      rugby: "🏉",
+      cricket: "🏏",
+      golf: "🏌️",
+    };
+    return sportEmojis[sport] || "🏒";
+  };
   const [formData, setFormData] = useState({
     city: "",
     name: "",
+    level: "",
     season: "2024-25",
     sport: "hockey",
   });
@@ -62,6 +80,7 @@ const TeamsComponent = ({ onTeamSelect }) => {
     setFormData({
       city: team.city || "",
       name: team.name || "",
+      level: team.level || "",
       season: team.season || "2024-25",
       sport: team.sport || "hockey",
     });
@@ -84,6 +103,7 @@ const TeamsComponent = ({ onTeamSelect }) => {
     setFormData({
       city: "",
       name: "",
+      level: "",
       season: "2024-25",
       sport: "hockey",
     });
@@ -139,6 +159,29 @@ const TeamsComponent = ({ onTeamSelect }) => {
 
           <div className="form-row">
             <div className="form-group">
+              <label>Level *</label>
+              <select
+                name="level"
+                value={formData.level}
+                onChange={handleInputChange}
+                required
+              >
+                <option value="">Select level</option>
+                <option value="NHL">NHL</option>
+                <option value="AHL">AHL</option>
+                <option value="ECHL">ECHL</option>
+                <option value="Junior">Junior</option>
+                <option value="College">College</option>
+                <option value="Amateur">Amateur</option>
+                <option value="Youth">Youth</option>
+                <option value="Professional">Professional</option>
+                <option value="Semi-Professional">Semi-Professional</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="form-row">
+            <div className="form-group">
               <label>Season *</label>
               <select
                 name="season"
@@ -166,6 +209,15 @@ const TeamsComponent = ({ onTeamSelect }) => {
                 required
               >
                 <option value="hockey">🏒 Hockey</option>
+                <option value="soccer">⚽ Soccer</option>
+                <option value="basketball">🏀 Basketball</option>
+                <option value="football">🏈 Football</option>
+                <option value="baseball">⚾ Baseball</option>
+                <option value="tennis">🎾 Tennis</option>
+                <option value="volleyball">🏐 Volleyball</option>
+                <option value="rugby">🏉 Rugby</option>
+                <option value="cricket">🏏 Cricket</option>
+                <option value="golf">🏌️ Golf</option>
               </select>
             </div>
           </div>
@@ -191,6 +243,7 @@ const TeamsComponent = ({ onTeamSelect }) => {
             <tr>
               <th>City</th>
               <th>Team Name</th>
+              <th>Level</th>
               <th>Season</th>
               <th>Sport</th>
               <th>Actions</th>
@@ -199,7 +252,7 @@ const TeamsComponent = ({ onTeamSelect }) => {
           <tbody>
             {teams.length === 0 ? (
               <tr>
-                <td colSpan="5" className="no-data">
+                <td colSpan="6" className="no-data">
                   No teams found. Add your first team!
                 </td>
               </tr>
@@ -214,10 +267,13 @@ const TeamsComponent = ({ onTeamSelect }) => {
                   >
                     {team.name}
                   </td>
+                  <td>
+                    <span className="level-badge">{team.level || "-"}</span>
+                  </td>
                   <td>{team.season}</td>
                   <td>
-                    <span className="sport-badge hockey">
-                      🏒{" "}
+                    <span className={`sport-badge ${team.sport || "hockey"}`}>
+                      {getSportEmoji(team.sport)}{" "}
                       {team.sport
                         ? team.sport.charAt(0).toUpperCase() +
                           team.sport.slice(1)

@@ -6,17 +6,17 @@ export const teamsController = {
   // CREATE team
   createTeam: async (req, res) => {
     try {
-      const { city, name, season, sport } = req.body;
+      const { city, name, level, season, sport } = req.body;
       
-      if (!city || !name || !season || !sport) {
+      if (!city || !name || !level || !season || !sport) {
         return res.status(400).json({ 
           success: false, 
-          error: "City, name, season, and sport are required" 
+          error: "City, name, level, season, and sport are required" 
         });
       }
 
       const result = await client.query(teamQueries.createTeam, [
-        city, name, season, sport
+        city, name, level, season, sport
       ]);
 
       res.status(201).json({
@@ -108,17 +108,17 @@ export const teamsController = {
   updateTeam: async (req, res) => {
     try {
       const { id } = req.params;
-      const { city, name, season, sport } = req.body;
+      const { city, name, level, season, sport } = req.body;
 
-      if (!city || !name || !season || !sport) {
+      if (!city || !name || !level || !season || !sport) {
         return res.status(400).json({ 
           success: false, 
-          error: "City, name, season, and sport are required" 
+          error: "City, name, level, season, and sport are required" 
         });
       }
 
       const result = await client.query(teamQueries.updateTeam, [
-        id, city, name, season, sport
+        id, city, name, level, season, sport
       ]);
 
       if (result.rows.length === 0) {
@@ -175,25 +175,17 @@ export const playersController = {
   // CREATE player
   createPlayer: async (req, res) => {
     try {
-      const { first_name, last_name, team_id, jersey_number, position } = req.body;
+      const { first_name, last_name, date_of_birth } = req.body;
       
-      if (!first_name || !last_name || !team_id || !jersey_number || !position) {
+      if (!first_name || !last_name || !date_of_birth) {
         return res.status(400).json({ 
           success: false, 
-          error: "First name, last name, team, jersey number, and position are required" 
-        });
-      }
-
-      // Validate position
-      if (!['goalie', 'forward', 'defence'].includes(position)) {
-        return res.status(400).json({ 
-          success: false, 
-          error: "Position must be 'goalie', 'forward', or 'defence'" 
+          error: "First name, last name, and date of birth are required" 
         });
       }
 
       const result = await client.query(playerQueries.createPlayer, [
-        first_name, last_name, team_id, jersey_number, position
+        first_name, last_name, date_of_birth
       ]);
 
       res.status(201).json({
@@ -205,7 +197,7 @@ export const playersController = {
       console.error("Error creating player:", error);
       res.status(500).json({
         success: false,
-        error: error.code === '23505' ? "Jersey number already taken for this team" : "Failed to create player"
+        error: error.code === '23505' ? "Player with this name and date of birth already exists" : "Failed to create player"
       });
     }
   },
@@ -255,11 +247,11 @@ export const playersController = {
     }
   },
 
-  // READ players by team
+  // READ players by team - deprecated since players no longer have team associations
   getPlayersByTeam: async (req, res) => {
     try {
-      const { teamId } = req.params;
-      const result = await client.query(playerQueries.getPlayersByTeam, [teamId]);
+      // Since players no longer belong to teams, return all players
+      const result = await client.query(playerQueries.getAllPlayers);
 
       res.json({
         success: true,
@@ -267,10 +259,10 @@ export const playersController = {
         players: result.rows
       });
     } catch (error) {
-      console.error("Error fetching team players:", error);
+      console.error("Error fetching players:", error);
       res.status(500).json({
         success: false,
-        error: "Failed to fetch team players"
+        error: "Failed to fetch players"
       });
     }
   },
@@ -279,18 +271,17 @@ export const playersController = {
   updatePlayer: async (req, res) => {
     try {
       const { id } = req.params;
-      const { first_name, last_name, team_id, jersey_number, position } = req.body;
+      const { first_name, last_name, date_of_birth } = req.body;
 
-      // Validate position if provided
-      if (position && !['goalie', 'forward', 'defence'].includes(position)) {
+      if (!first_name || !last_name || !date_of_birth) {
         return res.status(400).json({ 
           success: false, 
-          error: "Position must be 'goalie', 'forward', or 'defence'" 
+          error: "First name, last name, and date of birth are required" 
         });
       }
 
       const result = await client.query(playerQueries.updatePlayer, [
-        id, first_name, last_name, team_id, jersey_number, position
+        id, first_name, last_name, date_of_birth
       ]);
 
       if (result.rows.length === 0) {
