@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Dependencies
 node_modules/
 **/node_modules/
@@ -68,3 +69,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+=======
+backend/.env
+>>>>>>> f9852a741c1bb162445b781fd1369aee144dd51b
