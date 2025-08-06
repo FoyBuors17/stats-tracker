@@ -2,7 +2,7 @@ import { useState } from "react";
 import PlayersComponent from "./Players";
 import StatsComponent from "./Stats";
 
-const TeamDetails = ({ team, onBackToTeams }) => {
+const TeamDetails = ({ team, onBackToTeams, onPlayerSelect }) => {
   const [activeTab, setActiveTab] = useState("players");
 
   if (!team) {
@@ -20,11 +20,23 @@ const TeamDetails = ({ team, onBackToTeams }) => {
   const renderTabContent = () => {
     switch (activeTab) {
       case "players":
-        return <PlayersComponent teamId={team.id} teamName={team.name} />;
+        return (
+          <PlayersComponent
+            teamId={team.id}
+            teamName={team.name}
+            onPlayerSelect={onPlayerSelect}
+          />
+        );
       case "stats":
         return <StatsComponent teamId={team.id} teamName={team.name} />;
       default:
-        return <PlayersComponent teamId={team.id} teamName={team.name} />;
+        return (
+          <PlayersComponent
+            teamId={team.id}
+            teamName={team.name}
+            onPlayerSelect={onPlayerSelect}
+          />
+        );
     }
   };
 

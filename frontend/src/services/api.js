@@ -40,6 +40,9 @@ export const playersApi = {
   // Get players by team
   getByTeam: (teamId) => api.get(`/players/team/${teamId}`),
   
+  // Get player with their stats
+  getWithStats: (id) => api.get(`/players/${id}/stats`),
+  
   // Create new player
   create: (playerData) => api.post('/players', playerData),
   
@@ -54,6 +57,9 @@ export const playersApi = {
 export const statsApi = {
   // Get all stats
   getAll: () => api.get('/stats'),
+  
+  // Get stats by player ID
+  getByPlayer: (playerId) => api.get(`/stats/player/${playerId}`),
   
   // Get top scorers
   getTopScorers: (season = '2023-24', limit = 10) => 

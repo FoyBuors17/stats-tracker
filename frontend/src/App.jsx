@@ -2,11 +2,13 @@ import { useState, useEffect } from "react";
 import "./App.css";
 import TeamsComponent from "./components/Teams";
 import TeamDetails from "./components/TeamDetails";
+import PlayerDetails from "./components/PlayerDetails";
 import { healthApi } from "./services/api";
 
 function App() {
-  const [currentView, setCurrentView] = useState("teams"); // "teams" or "teamDetails"
+  const [currentView, setCurrentView] = useState("teams"); // "teams", "teamDetails", or "playerDetails"
   const [selectedTeam, setSelectedTeam] = useState(null);
+  const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [serverStatus, setServerStatus] = useState("checking");
 
   // Check server health on component mount
@@ -39,9 +41,20 @@ function App() {
     setCurrentView("teamDetails");
   };
 
+  const handlePlayerSelect = (player) => {
+    setSelectedPlayer(player);
+    setCurrentView("playerDetails");
+  };
+
   const handleBackToTeams = () => {
     setSelectedTeam(null);
+    setSelectedPlayer(null);
     setCurrentView("teams");
+  };
+
+  const handleBackToTeamDetails = () => {
+    setSelectedPlayer(null);
+    setCurrentView("teamDetails");
   };
 
   const renderContent = () => {
@@ -50,7 +63,18 @@ function App() {
         return <TeamsComponent onTeamSelect={handleTeamSelect} />;
       case "teamDetails":
         return (
-          <TeamDetails team={selectedTeam} onBackToTeams={handleBackToTeams} />
+          <TeamDetails
+            team={selectedTeam}
+            onBackToTeams={handleBackToTeams}
+            onPlayerSelect={handlePlayerSelect}
+          />
+        );
+      case "playerDetails":
+        return (
+          <PlayerDetails
+            player={selectedPlayer}
+            onBackToPlayers={handleBackToTeamDetails}
+          />
         );
       default:
         return <TeamsComponent onTeamSelect={handleTeamSelect} />;
@@ -87,6 +111,22 @@ function App() {
           <div className="team-header">
             <h2>
               📊 {selectedTeam.name} ({selectedTeam.season})
+            </h2>
+          </div>
+        </nav>
+      )}
+
+      {currentView === "playerDetails" && selectedPlayer && (
+        <nav className="app-nav">
+          <button
+            className="nav-btn back-btn"
+            onClick={handleBackToTeamDetails}
+          >
+            ← Back to {selectedTeam?.name || "Team"}
+          </button>
+          <div className="player-header">
+            <h2>
+              🏒 {selectedPlayer.first_name} {selectedPlayer.last_name}
             </h2>
           </div>
         </nav>

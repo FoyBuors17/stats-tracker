@@ -1,7 +1,11 @@
 import { useState, useEffect } from "react";
 import { playersApi, teamsApi } from "../services/api";
 
-const PlayersComponent = ({ teamId = null, teamName = null }) => {
+const PlayersComponent = ({
+  teamId = null,
+  teamName = null,
+  onPlayerSelect = null,
+}) => {
   const [players, setPlayers] = useState([]);
   const [teams, setTeams] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -270,8 +274,24 @@ const PlayersComponent = ({ teamId = null, teamName = null }) => {
             ) : (
               players.map((player) => (
                 <tr key={player.id}>
-                  <td className="player-name">{player.first_name}</td>
-                  <td className="player-name">{player.last_name}</td>
+                  <td
+                    className={`player-name ${
+                      onPlayerSelect ? "clickable" : ""
+                    }`}
+                    onClick={() => onPlayerSelect && onPlayerSelect(player)}
+                    title={onPlayerSelect ? "Click to view player details" : ""}
+                  >
+                    {player.first_name}
+                  </td>
+                  <td
+                    className={`player-name ${
+                      onPlayerSelect ? "clickable" : ""
+                    }`}
+                    onClick={() => onPlayerSelect && onPlayerSelect(player)}
+                    title={onPlayerSelect ? "Click to view player details" : ""}
+                  >
+                    {player.last_name}
+                  </td>
                   {!teamId && <td>{player.team_name || "-"}</td>}
                   <td className="jersey-number">{player.jersey_number}</td>
                   <td className="position">
@@ -283,6 +303,15 @@ const PlayersComponent = ({ teamId = null, teamName = null }) => {
                     </span>
                   </td>
                   <td className="actions">
+                    {onPlayerSelect && (
+                      <button
+                        className="btn btn-view"
+                        onClick={() => onPlayerSelect(player)}
+                        title="View player details"
+                      >
+                        👁️
+                      </button>
+                    )}
                     <button
                       className="btn btn-edit"
                       onClick={() => handleEdit(player)}
