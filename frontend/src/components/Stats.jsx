@@ -171,7 +171,7 @@ const StatsComponent = ({ teamId = null, teamName = null }) => {
           className="btn btn-primary"
           onClick={() => setShowForm(!showForm)}
         >
-          {showForm ? "Cancel" : "+ Add Stats"}
+          {showForm ? "Cancel" : "+ Add Game (stats)"}
         </button>
       </div>
 
