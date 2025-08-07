@@ -211,6 +211,156 @@ export const teamPlayerQueries = {
   `
 };
 
+// ==================== GAME QUERIES ====================
+export const gameQueries = {
+  // CREATE
+  createGame: `
+    INSERT INTO game (team_id, date, home_away, game_type, opponent, goals_for, goals_against)
+    VALUES ($1, $2, $3, $4, $5, $6, $7)
+    RETURNING *
+  `,
+
+  // READ
+  getAllGames: `
+    SELECT 
+      g.*,
+      t.name as team_name,
+      t.city as team_city
+    FROM game g
+    JOIN team t ON g.team_id = t.id
+    ORDER BY g.date DESC
+  `,
+
+  getGamesByTeam: `
+    SELECT * FROM game 
+    WHERE team_id = $1
+    ORDER BY date DESC
+  `,
+
+  getGameById: `
+    SELECT 
+      g.*,
+      t.name as team_name,
+      t.city as team_city
+    FROM game g
+    JOIN team t ON g.team_id = t.id
+    WHERE g.id = $1
+  `,
+
+  getGameWithPlayers: `
+    SELECT 
+      g.*,
+      t.name as team_name,
+      json_agg(
+        json_build_object(
+          'player_id', gp.player_id,
+          'first_name', p.first_name,
+          'last_name', p.last_name,
+          'jersey_number', tp.jersey_number,
+          'position', tp.position
+        )
+      ) FILTER (WHERE gp.player_id IS NOT NULL) as players
+    FROM game g
+    JOIN team t ON g.team_id = t.id
+    LEFT JOIN game_player gp ON g.id = gp.game_id
+    LEFT JOIN player p ON gp.player_id = p.id
+    LEFT JOIN team_player tp ON p.id = tp.player_id AND t.id = tp.team_id
+    WHERE g.id = $1
+    GROUP BY g.id, t.name
+  `,
+
+  // UPDATE
+  updateGame: `
+    UPDATE game 
+    SET date = $2, home_away = $3, game_type = $4, opponent = $5, 
+        goals_for = $6, goals_against = $7, updated_at = CURRENT_TIMESTAMP
+    WHERE id = $1
+    RETURNING *
+  `,
+
+  // DELETE
+  deleteGame: `
+    DELETE FROM game 
+    WHERE id = $1
+    RETURNING *
+  `
+};
+
+// ==================== GAME TYPE QUERIES ====================
+export const gameTypeQueries = {
+  getAllGameTypes: `
+    SELECT * FROM game_type
+    ORDER BY name ASC
+  `,
+
+  createGameType: `
+    INSERT INTO game_type (name)
+    VALUES ($1)
+    RETURNING *
+  `,
+
+  deleteGameType: `
+    DELETE FROM game_type 
+    WHERE id = $1
+    RETURNING *
+  `
+};
+
+// ==================== OPPONENT QUERIES ====================
+export const opponentQueries = {
+  getAllOpponents: `
+    SELECT * FROM opponent
+    ORDER BY name ASC
+  `,
+
+  createOpponent: `
+    INSERT INTO opponent (name)
+    VALUES ($1)
+    RETURNING *
+  `,
+
+  deleteOpponent: `
+    DELETE FROM opponent 
+    WHERE id = $1
+    RETURNING *
+  `
+};
+
+// ==================== GAME PLAYER QUERIES ====================
+export const gamePlayerQueries = {
+  assignPlayerToGame: `
+    INSERT INTO game_player (game_id, player_id)
+    VALUES ($1, $2)
+    RETURNING *
+  `,
+
+  getPlayersByGame: `
+    SELECT 
+      gp.*,
+      p.first_name,
+      p.last_name,
+      tp.jersey_number,
+      tp.position
+    FROM game_player gp
+    JOIN player p ON gp.player_id = p.id
+    LEFT JOIN team_player tp ON p.id = tp.player_id
+    WHERE gp.game_id = $1
+    ORDER BY tp.jersey_number ASC
+  `,
+
+  removePlayerFromGame: `
+    DELETE FROM game_player 
+    WHERE game_id = $1 AND player_id = $2
+    RETURNING *
+  `,
+
+  removeAllPlayersFromGame: `
+    DELETE FROM game_player 
+    WHERE game_id = $1
+    RETURNING *
+  `
+};
+
 // ==================== PLAYER STATS QUERIES ====================
 export const statsQueries = {
   // CREATE

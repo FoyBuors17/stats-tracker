@@ -1,5 +1,5 @@
 import client from "../../database.js";
-import { teamQueries, playerQueries, teamPlayerQueries, statsQueries, utilityQueries } from "./queries.js";
+import { teamQueries, playerQueries, teamPlayerQueries, gameQueries, gameTypeQueries, opponentQueries, gamePlayerQueries, statsQueries, utilityQueries } from "./queries.js";
 
 // ==================== TEAMS CONTROLLER ====================
 export const teamsController = {
@@ -505,6 +505,368 @@ export const teamPlayerController = {
       res.status(500).json({
         success: false,
         error: "Failed to remove player from team"
+      });
+    }
+  }
+};
+
+// ==================== GAME CONTROLLER ====================
+export const gameController = {
+  // CREATE game
+  createGame: async (req, res) => {
+    try {
+      const { team_id, date, home_away, game_type, opponent, goals_for, goals_against } = req.body;
+      
+      if (!team_id || !date || !home_away || !game_type || !opponent) {
+        return res.status(400).json({ 
+          success: false, 
+          error: "Team ID, date, home/away, game type, and opponent are required" 
+        });
+      }
+
+      // Validate home_away
+      if (!['Home', 'Away', 'Tournament'].includes(home_away)) {
+        return res.status(400).json({ 
+          success: false, 
+          error: "Home/Away must be 'Home', 'Away', or 'Tournament'" 
+        });
+      }
+
+      const result = await client.query(gameQueries.createGame, [
+        team_id, date, home_away, game_type, opponent, goals_for || 0, goals_against || 0
+      ]);
+
+      res.status(201).json({
+        success: true,
+        message: "Game created successfully",
+        game: result.rows[0]
+      });
+    } catch (error) {
+      console.error("Error creating game:", error);
+      res.status(500).json({
+        success: false,
+        error: "Failed to create game"
+      });
+    }
+  },
+
+  // READ all games
+  getAllGames: async (req, res) => {
+    try {
+      const result = await client.query(gameQueries.getAllGames);
+      
+      res.json({
+        success: true,
+        count: result.rows.length,
+        games: result.rows
+      });
+    } catch (error) {
+      console.error("Error fetching games:", error);
+      res.status(500).json({
+        success: false,
+        error: "Failed to fetch games"
+      });
+    }
+  },
+
+  // READ games by team
+  getGamesByTeam: async (req, res) => {
+    try {
+      const { teamId } = req.params;
+      const result = await client.query(gameQueries.getGamesByTeam, [teamId]);
+
+      res.json({
+        success: true,
+        count: result.rows.length,
+        games: result.rows
+      });
+    } catch (error) {
+      console.error("Error fetching team games:", error);
+      res.status(500).json({
+        success: false,
+        error: "Failed to fetch team games"
+      });
+    }
+  },
+
+  // READ game by ID
+  getGameById: async (req, res) => {
+    try {
+      const { id } = req.params;
+      const result = await client.query(gameQueries.getGameById, [id]);
+
+      if (result.rows.length === 0) {
+        return res.status(404).json({
+          success: false,
+          error: "Game not found"
+        });
+      }
+
+      res.json({
+        success: true,
+        game: result.rows[0]
+      });
+    } catch (error) {
+      console.error("Error fetching game:", error);
+      res.status(500).json({
+        success: false,
+        error: "Failed to fetch game"
+      });
+    }
+  },
+
+  // READ game with players
+  getGameWithPlayers: async (req, res) => {
+    try {
+      const { id } = req.params;
+      const result = await client.query(gameQueries.getGameWithPlayers, [id]);
+
+      if (result.rows.length === 0) {
+        return res.status(404).json({
+          success: false,
+          error: "Game not found"
+        });
+      }
+
+      res.json({
+        success: true,
+        game: result.rows[0]
+      });
+    } catch (error) {
+      console.error("Error fetching game with players:", error);
+      res.status(500).json({
+        success: false,
+        error: "Failed to fetch game with players"
+      });
+    }
+  },
+
+  // UPDATE game
+  updateGame: async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { date, home_away, game_type, opponent, goals_for, goals_against } = req.body;
+
+      if (!date || !home_away || !game_type || !opponent) {
+        return res.status(400).json({ 
+          success: false, 
+          error: "Date, home/away, game type, and opponent are required" 
+        });
+      }
+
+      const result = await client.query(gameQueries.updateGame, [
+        id, date, home_away, game_type, opponent, goals_for || 0, goals_against || 0
+      ]);
+
+      if (result.rows.length === 0) {
+        return res.status(404).json({
+          success: false,
+          error: "Game not found"
+        });
+      }
+
+      res.json({
+        success: true,
+        message: "Game updated successfully",
+        game: result.rows[0]
+      });
+    } catch (error) {
+      console.error("Error updating game:", error);
+      res.status(500).json({
+        success: false,
+        error: "Failed to update game"
+      });
+    }
+  },
+
+  // DELETE game
+  deleteGame: async (req, res) => {
+    try {
+      const { id } = req.params;
+      const result = await client.query(gameQueries.deleteGame, [id]);
+
+      if (result.rows.length === 0) {
+        return res.status(404).json({
+          success: false,
+          error: "Game not found"
+        });
+      }
+
+      res.json({
+        success: true,
+        message: "Game deleted successfully",
+        game: result.rows[0]
+      });
+    } catch (error) {
+      console.error("Error deleting game:", error);
+      res.status(500).json({
+        success: false,
+        error: "Failed to delete game"
+      });
+    }
+  }
+};
+
+// ==================== GAME TYPE CONTROLLER ====================
+export const gameTypeController = {
+  getAllGameTypes: async (req, res) => {
+    try {
+      const result = await client.query(gameTypeQueries.getAllGameTypes);
+      res.json({
+        success: true,
+        count: result.rows.length,
+        gameTypes: result.rows
+      });
+    } catch (error) {
+      console.error("Error fetching game types:", error);
+      res.status(500).json({
+        success: false,
+        error: "Failed to fetch game types"
+      });
+    }
+  },
+
+  createGameType: async (req, res) => {
+    try {
+      const { name } = req.body;
+      if (!name) {
+        return res.status(400).json({ 
+          success: false, 
+          error: "Game type name is required" 
+        });
+      }
+
+      const result = await client.query(gameTypeQueries.createGameType, [name]);
+      res.status(201).json({
+        success: true,
+        message: "Game type created successfully",
+        gameType: result.rows[0]
+      });
+    } catch (error) {
+      console.error("Error creating game type:", error);
+      res.status(500).json({
+        success: false,
+        error: error.code === '23505' ? "Game type already exists" : "Failed to create game type"
+      });
+    }
+  }
+};
+
+// ==================== OPPONENT CONTROLLER ====================
+export const opponentController = {
+  getAllOpponents: async (req, res) => {
+    try {
+      const result = await client.query(opponentQueries.getAllOpponents);
+      res.json({
+        success: true,
+        count: result.rows.length,
+        opponents: result.rows
+      });
+    } catch (error) {
+      console.error("Error fetching opponents:", error);
+      res.status(500).json({
+        success: false,
+        error: "Failed to fetch opponents"
+      });
+    }
+  },
+
+  createOpponent: async (req, res) => {
+    try {
+      const { name } = req.body;
+      if (!name) {
+        return res.status(400).json({ 
+          success: false, 
+          error: "Opponent name is required" 
+        });
+      }
+
+      const result = await client.query(opponentQueries.createOpponent, [name]);
+      res.status(201).json({
+        success: true,
+        message: "Opponent created successfully",
+        opponent: result.rows[0]
+      });
+    } catch (error) {
+      console.error("Error creating opponent:", error);
+      res.status(500).json({
+        success: false,
+        error: error.code === '23505' ? "Opponent already exists" : "Failed to create opponent"
+      });
+    }
+  }
+};
+
+// ==================== GAME PLAYER CONTROLLER ====================
+export const gamePlayerController = {
+  assignPlayerToGame: async (req, res) => {
+    try {
+      const { game_id, player_id } = req.body;
+      
+      if (!game_id || !player_id) {
+        return res.status(400).json({ 
+          success: false, 
+          error: "Game ID and player ID are required" 
+        });
+      }
+
+      const result = await client.query(gamePlayerQueries.assignPlayerToGame, [game_id, player_id]);
+
+      res.status(201).json({
+        success: true,
+        message: "Player assigned to game successfully",
+        assignment: result.rows[0]
+      });
+    } catch (error) {
+      console.error("Error assigning player to game:", error);
+      res.status(500).json({
+        success: false,
+        error: error.code === '23505' ? "Player already assigned to this game" : "Failed to assign player to game"
+      });
+    }
+  },
+
+  getPlayersByGame: async (req, res) => {
+    try {
+      const { gameId } = req.params;
+      const result = await client.query(gamePlayerQueries.getPlayersByGame, [gameId]);
+
+      res.json({
+        success: true,
+        count: result.rows.length,
+        players: result.rows
+      });
+    } catch (error) {
+      console.error("Error fetching game players:", error);
+      res.status(500).json({
+        success: false,
+        error: "Failed to fetch game players"
+      });
+    }
+  },
+
+  removePlayerFromGame: async (req, res) => {
+    try {
+      const { gameId, playerId } = req.params;
+      const result = await client.query(gamePlayerQueries.removePlayerFromGame, [gameId, playerId]);
+
+      if (result.rows.length === 0) {
+        return res.status(404).json({
+          success: false,
+          error: "Player assignment not found"
+        });
+      }
+
+      res.json({
+        success: true,
+        message: "Player removed from game successfully",
+        assignment: result.rows[0]
+      });
+    } catch (error) {
+      console.error("Error removing player from game:", error);
+      res.status(500).json({
+        success: false,
+        error: "Failed to remove player from game"
       });
     }
   }

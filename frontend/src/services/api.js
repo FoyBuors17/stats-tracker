@@ -76,6 +76,61 @@ export const teamPlayerApi = {
     api.delete(`/team-player/${playerId}/${teamId}`),
 };
 
+// ==================== GAME API ====================
+export const gameApi = {
+  // Get all games
+  getAll: () => api.get('/games'),
+  
+  // Get games by team
+  getByTeam: (teamId) => api.get(`/games/team/${teamId}`),
+  
+  // Get game by ID
+  getById: (id) => api.get(`/games/${id}`),
+  
+  // Get game with players
+  getWithPlayers: (id) => api.get(`/games/${id}/players`),
+  
+  // Create new game
+  create: (gameData) => api.post('/games', gameData),
+  
+  // Update game
+  update: (id, gameData) => api.put(`/games/${id}`, gameData),
+  
+  // Delete game
+  delete: (id) => api.delete(`/games/${id}`),
+};
+
+// ==================== GAME TYPE API ====================
+export const gameTypeApi = {
+  // Get all game types
+  getAll: () => api.get('/game-types'),
+  
+  // Create new game type
+  create: (gameTypeData) => api.post('/game-types', gameTypeData),
+};
+
+// ==================== OPPONENT API ====================
+export const opponentApi = {
+  // Get all opponents
+  getAll: () => api.get('/opponents'),
+  
+  // Create new opponent
+  create: (opponentData) => api.post('/opponents', opponentData),
+};
+
+// ==================== GAME PLAYER API ====================
+export const gamePlayerApi = {
+  // Assign player to game
+  assignToGame: (assignmentData) => api.post('/game-player', assignmentData),
+  
+  // Get players by game
+  getPlayersByGame: (gameId) => api.get(`/game-player/game/${gameId}`),
+  
+  // Remove player from game
+  removeFromGame: (gameId, playerId) => 
+    api.delete(`/game-player/${gameId}/${playerId}`),
+};
+
 // ==================== STATS API ====================
 export const statsApi = {
   // Get all stats

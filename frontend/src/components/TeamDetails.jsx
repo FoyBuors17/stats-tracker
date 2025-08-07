@@ -1,5 +1,6 @@
 import { useState } from "react";
 import TeamPlayersComponent from "./TeamPlayers";
+import GamesComponent from "./Games";
 import StatsComponent from "./Stats";
 
 const TeamDetails = ({ team, onBackToTeams, onPlayerSelect }) => {
@@ -27,6 +28,8 @@ const TeamDetails = ({ team, onBackToTeams, onPlayerSelect }) => {
             onPlayerSelect={onPlayerSelect}
           />
         );
+      case "games":
+        return <GamesComponent teamId={team.id} teamName={team.name} />;
       case "stats":
         return <StatsComponent teamId={team.id} teamName={team.name} />;
       default:
@@ -59,10 +62,16 @@ const TeamDetails = ({ team, onBackToTeams, onPlayerSelect }) => {
           👤 Players
         </button>
         <button
+          className={activeTab === "games" ? "nav-btn active" : "nav-btn"}
+          onClick={() => setActiveTab("games")}
+        >
+          🏆 Games
+        </button>
+        <button
           className={activeTab === "stats" ? "nav-btn active" : "nav-btn"}
           onClick={() => setActiveTab("stats")}
         >
-          📊 Statistics
+          📊 Player Stats
         </button>
       </nav>
 

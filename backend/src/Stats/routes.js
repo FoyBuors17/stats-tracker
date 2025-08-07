@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { teamsController, playersController, teamPlayerController, statsController } from "./controller.js";
+import { teamsController, playersController, teamPlayerController, gameController, gameTypeController, opponentController, gamePlayerController, statsController } from "./controller.js";
 
 const router = Router();
 
@@ -11,7 +11,11 @@ router.get("/", (req, res) => {
         endpoints: {
             teams: "/teams",
             players: "/players",
-            teamPlayer: "/team-player", 
+            teamPlayer: "/team-player",
+            games: "/games",
+            gameTypes: "/game-types",
+            opponents: "/opponents",
+            gamePlayer: "/game-player",
             stats: "/stats"
         }
     });
@@ -73,6 +77,52 @@ router.put("/team-player/:playerId/:teamId", teamPlayerController.updateAssignme
 
 // DELETE /api/v1/Stats/team-player/:playerId/:teamId - Remove player from team
 router.delete("/team-player/:playerId/:teamId", teamPlayerController.removePlayerFromTeam);
+
+// ==================== GAME ROUTES ====================
+// POST /api/v1/Stats/games - Create new game
+router.post("/games", gameController.createGame);
+
+// GET /api/v1/Stats/games - Get all games
+router.get("/games", gameController.getAllGames);
+
+// GET /api/v1/Stats/games/team/:teamId - Get games by team
+router.get("/games/team/:teamId", gameController.getGamesByTeam);
+
+// GET /api/v1/Stats/games/:id - Get game by ID
+router.get("/games/:id", gameController.getGameById);
+
+// GET /api/v1/Stats/games/:id/players - Get game with players
+router.get("/games/:id/players", gameController.getGameWithPlayers);
+
+// PUT /api/v1/Stats/games/:id - Update game
+router.put("/games/:id", gameController.updateGame);
+
+// DELETE /api/v1/Stats/games/:id - Delete game
+router.delete("/games/:id", gameController.deleteGame);
+
+// ==================== GAME TYPE ROUTES ====================
+// GET /api/v1/Stats/game-types - Get all game types
+router.get("/game-types", gameTypeController.getAllGameTypes);
+
+// POST /api/v1/Stats/game-types - Create new game type
+router.post("/game-types", gameTypeController.createGameType);
+
+// ==================== OPPONENT ROUTES ====================
+// GET /api/v1/Stats/opponents - Get all opponents
+router.get("/opponents", opponentController.getAllOpponents);
+
+// POST /api/v1/Stats/opponents - Create new opponent
+router.post("/opponents", opponentController.createOpponent);
+
+// ==================== GAME PLAYER ROUTES ====================
+// POST /api/v1/Stats/game-player - Assign player to game
+router.post("/game-player", gamePlayerController.assignPlayerToGame);
+
+// GET /api/v1/Stats/game-player/game/:gameId - Get players by game
+router.get("/game-player/game/:gameId", gamePlayerController.getPlayersByGame);
+
+// DELETE /api/v1/Stats/game-player/:gameId/:playerId - Remove player from game
+router.delete("/game-player/:gameId/:playerId", gamePlayerController.removePlayerFromGame);
 
 // ==================== STATS ROUTES ====================
 // GET /api/v1/Stats/stats - Get all player stats
