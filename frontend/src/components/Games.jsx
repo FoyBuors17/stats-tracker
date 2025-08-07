@@ -20,6 +20,9 @@ const GamesComponent = ({ teamId, teamName }) => {
   const [selectedGameForPlayers, setSelectedGameForPlayers] = useState(null);
   const [gamePlayers, setGamePlayers] = useState([]);
   const [allGamePlayers, setAllGamePlayers] = useState({});
+  const [showLineupModal, setShowLineupModal] = useState(false);
+  const [selectedGameLineup, setSelectedGameLineup] = useState(null);
+  const [startingGoalie, setStartingGoalie] = useState(null);
   const [formData, setFormData] = useState({
     date: "",
     home_away: "",
@@ -178,6 +181,7 @@ const GamesComponent = ({ teamId, teamName }) => {
   const handleAddPlayers = (game) => {
     setSelectedGameForPlayers(game);
     loadGamePlayers(game.id);
+    setStartingGoalie(null); // Reset starting goalie selection
     setShowPlayerModal(true);
   };
 
@@ -216,6 +220,31 @@ const GamesComponent = ({ teamId, teamName }) => {
     setShowPlayerModal(false);
     setSelectedGameForPlayers(null);
     setGamePlayers([]);
+    setStartingGoalie(null);
+  };
+
+  const handleLineupClick = (game) => {
+    setSelectedGameLineup(game);
+    setShowLineupModal(true);
+  };
+
+  const closeLineupModal = () => {
+    setShowLineupModal(false);
+    setSelectedGameLineup(null);
+  };
+
+  const getLineupDetails = (gameId) => {
+    const gamePlayersForGame = allGamePlayers[gameId] || [];
+
+    const forwards = gamePlayersForGame.filter(
+      (gp) => gp.position === "Forward"
+    );
+    const defence = gamePlayersForGame.filter(
+      (gp) => gp.position === "Defence"
+    );
+    const goalies = gamePlayersForGame.filter((gp) => gp.position === "Goalie");
+
+    return { forwards, defence, goalies, total: gamePlayersForGame.length };
   };
 
   const addNewGameType = async () => {
@@ -263,6 +292,23 @@ const GamesComponent = ({ teamId, teamName }) => {
     }
   };
 
+  const formatModalOpponentDisplay = (opponent, homeAway) => {
+    switch (homeAway) {
+      case "Home":
+        return `vs ${opponent}`;
+      case "Away":
+        return `@ ${opponent}`;
+      case "Tournament":
+        return `T ${opponent}`;
+      default:
+        return opponent;
+    }
+  };
+
+  const handleStartingGoalieToggle = (playerId) => {
+    setStartingGoalie(startingGoalie === playerId ? null : playerId);
+  };
+
   const getGameResult = (goalsFor, goalsAgainst) => {
     if (goalsFor > goalsAgainst) {
       return "Win";
@@ -287,6 +333,18 @@ const GamesComponent = ({ teamId, teamName }) => {
     ).length;
 
     return `${forwards}F, ${defence}D, ${goalies}G`;
+  };
+
+  const getLineupButtonText = (gameId) => {
+    const gamePlayersForGame = allGamePlayers[gameId] || [];
+    return gamePlayersForGame.length === 0
+      ? "Enter Lineup"
+      : getPositionCounts(gameId);
+  };
+
+  const handleLineupButtonClick = (game) => {
+    // Always open player assignment modal for easier lineup management
+    handleAddPlayers(game);
   };
 
   if (loading) return <div className="loading">Loading games...</div>;
@@ -457,7 +515,6 @@ const GamesComponent = ({ teamId, teamName }) => {
               <th>Opponent</th>
               <th>Score</th>
               <th>Result</th>
-              <th>Players</th>
               <th>Lineup</th>
               <th>Actions</th>
             </tr>
@@ -465,7 +522,7 @@ const GamesComponent = ({ teamId, teamName }) => {
           <tbody>
             {games.length === 0 ? (
               <tr>
-                <td colSpan="8" className="no-data">
+                <td colSpan="7" className="no-data">
                   No games found for {teamName}. Add your first game!
                 </td>
               </tr>
@@ -492,21 +549,14 @@ const GamesComponent = ({ teamId, teamName }) => {
                       {getGameResult(game.goals_for, game.goals_against)}
                     </span>
                   </td>
-                  <td>
-                    <button
-                      className="btn btn-players"
-                      onClick={() => handleAddPlayers(game)}
-                    >
-                      👤 Players
-                    </button>
-                  </td>
                   <td className="position-counts">
-                    <span
-                      className="lineup-summary"
-                      title="Your team's lineup: Forwards, Defence, Goalies"
+                    <button
+                      className="lineup-summary-btn"
+                      onClick={() => handleLineupButtonClick(game)}
+                      title="Click to manage lineup for this game"
                     >
-                      {getPositionCounts(game.id)}
-                    </span>
+                      {getLineupButtonText(game.id)}
+                    </button>
                   </td>
                   <td className="actions">
                     <button
@@ -548,48 +598,659 @@ const GamesComponent = ({ teamId, teamName }) => {
 
       {/* Player Selection Modal */}
       {showPlayerModal && selectedGameForPlayers && (
+        <div
+          className="modal-overlay"
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "rgba(0, 0, 0, 0.7)",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            zIndex: 1000,
+          }}
+        >
+          <div
+            className="modal"
+            style={{
+              backgroundColor: "white",
+              borderRadius: "8px",
+              boxShadow: "0 4px 20px rgba(0, 0, 0, 0.3)",
+              width: "100vw",
+              maxWidth: "100vw",
+              maxHeight: "90vh",
+              overflow: "hidden",
+              position: "relative",
+              margin: "0",
+            }}
+          >
+            <div
+              className="modal-header"
+              style={{
+                padding: "20px",
+                borderBottom: "1px solid #eee",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "flex-start",
+              }}
+            >
+              <div>
+                <h3
+                  style={{
+                    margin: "0 0 8px 0",
+                    fontSize: "1.5rem",
+                    color: "#333",
+                  }}
+                >
+                  🏒 Manage Lineup -{" "}
+                  {formatModalOpponentDisplay(
+                    selectedGameForPlayers.opponent,
+                    selectedGameForPlayers.home_away
+                  )}
+                </h3>
+                <div
+                  className="game-info"
+                  style={{ color: "#666", fontSize: "0.9rem" }}
+                >
+                  <span>
+                    {new Date(selectedGameForPlayers.date).toLocaleDateString()}
+                  </span>
+                  <span className="separator" style={{ margin: "0 8px" }}>
+                    •
+                  </span>
+                  <span>{selectedGameForPlayers.game_type}</span>
+                </div>
+              </div>
+              <button
+                className="modal-close"
+                onClick={closePlayerModal}
+                style={{
+                  background: "none",
+                  border: "none",
+                  fontSize: "24px",
+                  cursor: "pointer",
+                  color: "#999",
+                  padding: "0",
+                  width: "30px",
+                  height: "30px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                ×
+              </button>
+            </div>
+            <div className="modal-content" style={{ padding: "20px" }}>
+              <div className="lineup-management">
+                <div
+                  className="current-lineup-summary"
+                  style={{
+                    backgroundColor: "#f8f9fa",
+                    padding: "10px 15px",
+                    borderRadius: "4px",
+                    marginBottom: "12px",
+                    border: "1px solid #e9ecef",
+                  }}
+                >
+                  <h4
+                    style={{
+                      margin: "0",
+                      color: "#495057",
+                      fontSize: "1rem",
+                      fontWeight: "600",
+                    }}
+                  >
+                    📊 Current Lineup:{" "}
+                    {getPositionCounts(selectedGameForPlayers.id)}
+                  </h4>
+                </div>
+
+                <div className="player-selection">
+                  <h5
+                    style={{
+                      marginBottom: "10px",
+                      color: "#343a40",
+                      fontSize: "0.95rem",
+                      fontWeight: "600",
+                    }}
+                  >
+                    👥 Select Players for This Game:
+                  </h5>
+
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "1fr 1fr 1fr",
+                      gap: "15px",
+                      height: "380px",
+                    }}
+                  >
+                    {/* Forwards Column */}
+                    <div
+                      style={{
+                        border: "1px solid #dee2e6",
+                        borderRadius: "4px",
+                        backgroundColor: "#fafafa",
+                        padding: "10px",
+                      }}
+                    >
+                      <h6
+                        style={{
+                          margin: "0 0 10px 0",
+                          color: "#495057",
+                          fontSize: "0.9rem",
+                          fontWeight: "600",
+                          textAlign: "center",
+                          borderBottom: "2px solid #007bff",
+                          paddingBottom: "5px",
+                        }}
+                      >
+                        🏒 Forwards
+                      </h6>
+                      <div
+                        style={{
+                          maxHeight: "320px",
+                          overflowY: "auto",
+                          paddingRight: "3px",
+                        }}
+                      >
+                        {teamPlayers
+                          .filter((player) => player.position === "Forward")
+                          .sort(
+                            (a, b) =>
+                              (a.jersey_number || 0) - (b.jersey_number || 0)
+                          )
+                          .map((player) => {
+                            const isSelected = gamePlayers.some(
+                              (gp) => gp.player_id === player.player_id
+                            );
+                            return (
+                              <div
+                                key={player.player_id}
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  padding: "8px",
+                                  marginBottom: "5px",
+                                  backgroundColor: isSelected
+                                    ? "#d4edda"
+                                    : "white",
+                                  border: isSelected
+                                    ? "1px solid #28a745"
+                                    : "1px solid #e9ecef",
+                                  borderRadius: "4px",
+                                  cursor: "pointer",
+                                }}
+                                onClick={() =>
+                                  handlePlayerToggle(
+                                    player.player_id,
+                                    isSelected
+                                  )
+                                }
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={isSelected}
+                                  onChange={() =>
+                                    handlePlayerToggle(
+                                      player.player_id,
+                                      isSelected
+                                    )
+                                  }
+                                  style={{ marginRight: "10px" }}
+                                />
+                                <span
+                                  style={{
+                                    fontSize: "0.9rem",
+                                    fontWeight: "500",
+                                  }}
+                                >
+                                  #{player.jersey_number} {player.first_name}{" "}
+                                  {player.last_name}
+                                </span>
+                              </div>
+                            );
+                          })}
+                      </div>
+                    </div>
+
+                    {/* Defence Column */}
+                    <div
+                      style={{
+                        border: "1px solid #dee2e6",
+                        borderRadius: "4px",
+                        backgroundColor: "#fafafa",
+                        padding: "10px",
+                      }}
+                    >
+                      <h6
+                        style={{
+                          margin: "0 0 10px 0",
+                          color: "#495057",
+                          fontSize: "0.9rem",
+                          fontWeight: "600",
+                          textAlign: "center",
+                          borderBottom: "2px solid #28a745",
+                          paddingBottom: "5px",
+                        }}
+                      >
+                        🛡️ Defence
+                      </h6>
+                      <div
+                        style={{
+                          maxHeight: "320px",
+                          overflowY: "auto",
+                          paddingRight: "3px",
+                        }}
+                      >
+                        {teamPlayers
+                          .filter((player) => player.position === "Defence")
+                          .sort(
+                            (a, b) =>
+                              (a.jersey_number || 0) - (b.jersey_number || 0)
+                          )
+                          .map((player) => {
+                            const isSelected = gamePlayers.some(
+                              (gp) => gp.player_id === player.player_id
+                            );
+                            return (
+                              <div
+                                key={player.player_id}
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  padding: "8px",
+                                  marginBottom: "5px",
+                                  backgroundColor: isSelected
+                                    ? "#d4edda"
+                                    : "white",
+                                  border: isSelected
+                                    ? "1px solid #28a745"
+                                    : "1px solid #e9ecef",
+                                  borderRadius: "4px",
+                                  cursor: "pointer",
+                                }}
+                                onClick={() =>
+                                  handlePlayerToggle(
+                                    player.player_id,
+                                    isSelected
+                                  )
+                                }
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={isSelected}
+                                  onChange={() =>
+                                    handlePlayerToggle(
+                                      player.player_id,
+                                      isSelected
+                                    )
+                                  }
+                                  style={{ marginRight: "10px" }}
+                                />
+                                <span
+                                  style={{
+                                    fontSize: "0.9rem",
+                                    fontWeight: "500",
+                                  }}
+                                >
+                                  #{player.jersey_number} {player.first_name}{" "}
+                                  {player.last_name}
+                                </span>
+                              </div>
+                            );
+                          })}
+                      </div>
+                    </div>
+
+                    {/* Goalies Column */}
+                    <div
+                      style={{
+                        border: "1px solid #dee2e6",
+                        borderRadius: "4px",
+                        backgroundColor: "#fafafa",
+                        padding: "10px",
+                      }}
+                    >
+                      <h6
+                        style={{
+                          margin: "0 0 10px 0",
+                          color: "#495057",
+                          fontSize: "0.9rem",
+                          fontWeight: "600",
+                          textAlign: "center",
+                          borderBottom: "2px solid #dc3545",
+                          paddingBottom: "5px",
+                        }}
+                      >
+                        🥅 Goalies
+                      </h6>
+                      <div
+                        style={{
+                          maxHeight: "320px",
+                          overflowY: "auto",
+                          paddingRight: "3px",
+                        }}
+                      >
+                        {teamPlayers
+                          .filter((player) => player.position === "Goalie")
+                          .sort(
+                            (a, b) =>
+                              (a.jersey_number || 0) - (b.jersey_number || 0)
+                          )
+                          .map((player) => {
+                            const isSelected = gamePlayers.some(
+                              (gp) => gp.player_id === player.player_id
+                            );
+                            const isStarting =
+                              startingGoalie === player.player_id;
+                            return (
+                              <div
+                                key={player.player_id}
+                                style={{
+                                  padding: "6px",
+                                  marginBottom: "6px",
+                                  backgroundColor: isSelected
+                                    ? "#d4edda"
+                                    : "white",
+                                  border: isSelected
+                                    ? "1px solid #28a745"
+                                    : "1px solid #e9ecef",
+                                  borderRadius: "3px",
+                                }}
+                              >
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    cursor: "pointer",
+                                    marginBottom: "3px",
+                                  }}
+                                  onClick={() =>
+                                    handlePlayerToggle(
+                                      player.player_id,
+                                      isSelected
+                                    )
+                                  }
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={isSelected}
+                                    onChange={() =>
+                                      handlePlayerToggle(
+                                        player.player_id,
+                                        isSelected
+                                      )
+                                    }
+                                    style={{ marginRight: "10px" }}
+                                  />
+                                  <span
+                                    style={{
+                                      fontSize: "0.9rem",
+                                      fontWeight: "500",
+                                    }}
+                                  >
+                                    #{player.jersey_number} {player.first_name}{" "}
+                                    {player.last_name}
+                                  </span>
+                                </div>
+                                {isSelected && (
+                                  <div
+                                    style={{
+                                      display: "flex",
+                                      alignItems: "center",
+                                      marginLeft: "25px",
+                                      cursor: "pointer",
+                                    }}
+                                    onClick={() =>
+                                      handleStartingGoalieToggle(
+                                        player.player_id
+                                      )
+                                    }
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      checked={isStarting}
+                                      onChange={() =>
+                                        handleStartingGoalieToggle(
+                                          player.player_id
+                                        )
+                                      }
+                                      style={{ marginRight: "8px" }}
+                                    />
+                                    <span
+                                      style={{
+                                        fontSize: "0.75rem",
+                                        color: "#dc3545",
+                                        fontWeight: "600",
+                                      }}
+                                    >
+                                      ⭐ Starting Goalie
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div
+              className="modal-footer"
+              style={{
+                padding: "20px",
+                borderTop: "1px solid #eee",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                backgroundColor: "#f8f9fa",
+              }}
+            >
+              <div style={{ color: "#6c757d", fontSize: "0.9rem" }}>
+                Selected: {gamePlayers.length} players
+              </div>
+              <div style={{ display: "flex", gap: "10px" }}>
+                <button
+                  className="btn btn-secondary"
+                  onClick={closePlayerModal}
+                  style={{
+                    padding: "10px 20px",
+                    border: "1px solid #6c757d",
+                    backgroundColor: "white",
+                    color: "#6c757d",
+                    borderRadius: "4px",
+                    cursor: "pointer",
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="btn btn-primary"
+                  onClick={closePlayerModal}
+                  style={{
+                    padding: "10px 20px",
+                    border: "none",
+                    backgroundColor: "#007bff",
+                    color: "white",
+                    borderRadius: "4px",
+                    cursor: "pointer",
+                    fontWeight: "500",
+                  }}
+                >
+                  💾 Save Lineup
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Lineup Details Modal */}
+      {showLineupModal && selectedGameLineup && (
         <div className="modal-overlay">
           <div className="modal">
             <div className="modal-header">
               <h3>
-                Select Players for Game vs {selectedGameForPlayers.opponent}
+                Dressed Players -{" "}
+                {formatOpponentDisplay(
+                  selectedGameLineup.opponent,
+                  selectedGameLineup.home_away
+                )}
               </h3>
-              <button className="modal-close" onClick={closePlayerModal}>
+              <div className="game-info">
+                <span>
+                  {new Date(selectedGameLineup.date).toLocaleDateString()}
+                </span>
+                <span className="separator">•</span>
+                <span>{selectedGameLineup.game_type}</span>
+              </div>
+              <button className="modal-close" onClick={closeLineupModal}>
                 ×
               </button>
             </div>
             <div className="modal-content">
-              <div className="player-selection">
-                {teamPlayers.map((player) => {
-                  const isSelected = gamePlayers.some(
-                    (gp) => gp.player_id === player.player_id
-                  );
+              <div className="lineup-details">
+                {(() => {
+                  const lineup = getLineupDetails(selectedGameLineup.id);
                   return (
-                    <div key={player.player_id} className="player-checkbox">
-                      <label>
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={() =>
-                            handlePlayerToggle(player.player_id, isSelected)
-                          }
-                        />
-                        <span className="jersey-number">
-                          #{player.jersey_number}
-                        </span>
-                        <span className="player-name">
-                          {player.first_name} {player.last_name}
-                        </span>
-                        <span className="position">{player.position}</span>
-                      </label>
-                    </div>
+                    <>
+                      {lineup.total === 0 ? (
+                        <div className="no-players">
+                          <p>No players assigned to this game yet.</p>
+                          <button
+                            className="btn btn-primary"
+                            onClick={() => {
+                              closeLineupModal();
+                              handleAddPlayers(selectedGameLineup);
+                            }}
+                          >
+                            Assign Players
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          {/* Forwards */}
+                          {lineup.forwards.length > 0 && (
+                            <div className="position-section">
+                              <h4 className="position-title">
+                                🏒 Forwards ({lineup.forwards.length})
+                              </h4>
+                              <div className="players-grid">
+                                {lineup.forwards
+                                  .sort(
+                                    (a, b) =>
+                                      (a.jersey_number || 0) -
+                                      (b.jersey_number || 0)
+                                  )
+                                  .map((player) => (
+                                    <div
+                                      key={player.player_id}
+                                      className="player-card"
+                                    >
+                                      <span className="jersey">
+                                        #{player.jersey_number || "?"}
+                                      </span>
+                                      <span className="name">
+                                        {player.first_name} {player.last_name}
+                                      </span>
+                                    </div>
+                                  ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Defence */}
+                          {lineup.defence.length > 0 && (
+                            <div className="position-section">
+                              <h4 className="position-title">
+                                🛡️ Defence ({lineup.defence.length})
+                              </h4>
+                              <div className="players-grid">
+                                {lineup.defence
+                                  .sort(
+                                    (a, b) =>
+                                      (a.jersey_number || 0) -
+                                      (b.jersey_number || 0)
+                                  )
+                                  .map((player) => (
+                                    <div
+                                      key={player.player_id}
+                                      className="player-card"
+                                    >
+                                      <span className="jersey">
+                                        #{player.jersey_number || "?"}
+                                      </span>
+                                      <span className="name">
+                                        {player.first_name} {player.last_name}
+                                      </span>
+                                    </div>
+                                  ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Goalies */}
+                          {lineup.goalies.length > 0 && (
+                            <div className="position-section">
+                              <h4 className="position-title">
+                                🥅 Goalies ({lineup.goalies.length})
+                              </h4>
+                              <div className="players-grid">
+                                {lineup.goalies
+                                  .sort(
+                                    (a, b) =>
+                                      (a.jersey_number || 0) -
+                                      (b.jersey_number || 0)
+                                  )
+                                  .map((player) => (
+                                    <div
+                                      key={player.player_id}
+                                      className="player-card"
+                                    >
+                                      <span className="jersey">
+                                        #{player.jersey_number || "?"}
+                                      </span>
+                                      <span className="name">
+                                        {player.first_name} {player.last_name}
+                                      </span>
+                                    </div>
+                                  ))}
+                              </div>
+                            </div>
+                          )}
+
+                          <div className="lineup-summary">
+                            <p>
+                              <strong>Total Players Dressed:</strong>{" "}
+                              {lineup.total}
+                            </p>
+                          </div>
+                        </>
+                      )}
+                    </>
                   );
-                })}
+                })()}
               </div>
             </div>
             <div className="modal-footer">
-              <button className="btn btn-primary" onClick={closePlayerModal}>
-                Done
+              <button
+                className="btn btn-secondary"
+                onClick={() => {
+                  closeLineupModal();
+                  handleAddPlayers(selectedGameLineup);
+                }}
+              >
+                Edit Lineup
+              </button>
+              <button className="btn btn-primary" onClick={closeLineupModal}>
+                Close
               </button>
             </div>
           </div>
