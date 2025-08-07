@@ -1,5 +1,5 @@
 import { useState } from "react";
-import PlayersComponent from "./Players";
+import TeamPlayersComponent from "./TeamPlayers";
 import StatsComponent from "./Stats";
 
 const TeamDetails = ({ team, onBackToTeams, onPlayerSelect }) => {
@@ -21,7 +21,7 @@ const TeamDetails = ({ team, onBackToTeams, onPlayerSelect }) => {
     switch (activeTab) {
       case "players":
         return (
-          <PlayersComponent
+          <TeamPlayersComponent
             teamId={team.id}
             teamName={team.name}
             onPlayerSelect={onPlayerSelect}
@@ -31,7 +31,7 @@ const TeamDetails = ({ team, onBackToTeams, onPlayerSelect }) => {
         return <StatsComponent teamId={team.id} teamName={team.name} />;
       default:
         return (
-          <PlayersComponent
+          <TeamPlayersComponent
             teamId={team.id}
             teamName={team.name}
             onPlayerSelect={onPlayerSelect}
@@ -46,7 +46,7 @@ const TeamDetails = ({ team, onBackToTeams, onPlayerSelect }) => {
         <div className="team-info">
           <h1>{team.name}</h1>
           <p className="team-meta">
-            📍 {team.city} • 📅 {team.season}
+            📍 {team.city} • 🏆 {team.level} • 📅 {team.season} • {team.sport}
           </p>
         </div>
       </div>

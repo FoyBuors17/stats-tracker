@@ -22,9 +22,23 @@ export const teamQueries = {
 
   getTeamWithPlayers: `
     SELECT 
-      t.*
+      t.*,
+      json_agg(
+        json_build_object(
+          'id', tp.id,
+          'player_id', tp.player_id,
+          'first_name', p.first_name,
+          'last_name', p.last_name,
+          'date_of_birth', p.date_of_birth,
+          'jersey_number', tp.jersey_number,
+          'position', tp.position
+        )
+      ) FILTER (WHERE tp.id IS NOT NULL) as players
     FROM team t
+    LEFT JOIN team_player tp ON t.id = tp.team_id
+    LEFT JOIN player p ON tp.player_id = p.id
     WHERE t.id = $1
+    GROUP BY t.id
   `,
 
   // UPDATE
@@ -109,6 +123,90 @@ export const playerQueries = {
   deletePlayer: `
     DELETE FROM player 
     WHERE id = $1
+    RETURNING *
+  `
+};
+
+// ==================== TEAM-PLAYER QUERIES ====================
+export const teamPlayerQueries = {
+  // CREATE
+  assignPlayerToTeam: `
+    INSERT INTO team_player (player_id, team_id, jersey_number, position)
+    VALUES ($1, $2, $3, $4)
+    RETURNING *
+  `,
+
+  // READ
+  getPlayersByTeam: `
+    SELECT 
+      tp.*,
+      p.first_name,
+      p.last_name,
+      p.date_of_birth,
+      CONCAT(p.first_name, ' ', p.last_name) as full_name
+    FROM team_player tp
+    JOIN player p ON tp.player_id = p.id
+    WHERE tp.team_id = $1
+    ORDER BY tp.jersey_number ASC
+  `,
+
+  getTeamsByPlayer: `
+    SELECT 
+      tp.*,
+      t.city,
+      t.name as team_name,
+      t.level,
+      t.season,
+      t.sport
+    FROM team_player tp
+    JOIN team t ON tp.team_id = t.id
+    WHERE tp.player_id = $1
+    ORDER BY t.name ASC
+  `,
+
+  getPlayerTeamAssignment: `
+    SELECT * FROM team_player 
+    WHERE player_id = $1 AND team_id = $2
+  `,
+
+  getAllTeamPlayerAssignments: `
+    SELECT 
+      tp.*,
+      p.first_name,
+      p.last_name,
+      CONCAT(p.first_name, ' ', p.last_name) as player_name,
+      t.name as team_name,
+      t.city
+    FROM team_player tp
+    JOIN player p ON tp.player_id = p.id
+    JOIN team t ON tp.team_id = t.id
+    ORDER BY t.name ASC, tp.jersey_number ASC
+  `,
+
+  // UPDATE
+  updatePlayerTeamAssignment: `
+    UPDATE team_player 
+    SET jersey_number = $3, position = $4, updated_at = CURRENT_TIMESTAMP
+    WHERE player_id = $1 AND team_id = $2
+    RETURNING *
+  `,
+
+  // DELETE
+  removePlayerFromTeam: `
+    DELETE FROM team_player 
+    WHERE player_id = $1 AND team_id = $2
+    RETURNING *
+  `,
+
+  removeAllPlayerAssignments: `
+    DELETE FROM team_player 
+    WHERE player_id = $1
+    RETURNING *
+  `,
+
+  removeAllTeamAssignments: `
+    DELETE FROM team_player 
+    WHERE team_id = $1
     RETURNING *
   `
 };

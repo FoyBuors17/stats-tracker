@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { teamsController, playersController, statsController } from "./controller.js";
+import { teamsController, playersController, teamPlayerController, statsController } from "./controller.js";
 
 const router = Router();
 
@@ -10,7 +10,8 @@ router.get("/", (req, res) => {
         version: "1.0.0",
         endpoints: {
             teams: "/teams",
-            players: "/players", 
+            players: "/players",
+            teamPlayer: "/team-player", 
             stats: "/stats"
         }
     });
@@ -53,6 +54,25 @@ router.put("/players/:id", playersController.updatePlayer);
 
 // DELETE /api/v1/Stats/players/:id - Delete player
 router.delete("/players/:id", playersController.deletePlayer);
+
+// ==================== TEAM-PLAYER ROUTES ====================
+// POST /api/v1/Stats/team-player - Assign player to team
+router.post("/team-player", teamPlayerController.assignPlayerToTeam);
+
+// GET /api/v1/Stats/team-player - Get all team-player assignments
+router.get("/team-player", teamPlayerController.getAllAssignments);
+
+// GET /api/v1/Stats/team-player/team/:teamId - Get players by team
+router.get("/team-player/team/:teamId", teamPlayerController.getPlayersByTeam);
+
+// GET /api/v1/Stats/team-player/player/:playerId - Get teams by player
+router.get("/team-player/player/:playerId", teamPlayerController.getTeamsByPlayer);
+
+// PUT /api/v1/Stats/team-player/:playerId/:teamId - Update player team assignment
+router.put("/team-player/:playerId/:teamId", teamPlayerController.updateAssignment);
+
+// DELETE /api/v1/Stats/team-player/:playerId/:teamId - Remove player from team
+router.delete("/team-player/:playerId/:teamId", teamPlayerController.removePlayerFromTeam);
 
 // ==================== STATS ROUTES ====================
 // GET /api/v1/Stats/stats - Get all player stats

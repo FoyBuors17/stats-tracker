@@ -10,11 +10,37 @@ function App() {
   const [selectedTeam, setSelectedTeam] = useState(null);
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [serverStatus, setServerStatus] = useState("checking");
+  const [currentEmojiIndex, setCurrentEmojiIndex] = useState(0);
+
+  // Sports emojis array for cycling
+  const sportsEmojis = [
+    "🏒", // hockey
+    "⚽", // soccer
+    "🏀", // basketball
+    "🏈", // football
+    "⚾", // baseball
+    "🎾", // tennis
+    "🏐", // volleyball
+    "🏉", // rugby
+    "🏏", // cricket
+    "🏌️", // golf
+  ];
 
   // Check server health on component mount
   useEffect(() => {
     checkServerHealth();
   }, []);
+
+  // Cycle through sports emojis every 10 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentEmojiIndex(
+        (prevIndex) => (prevIndex + 1) % sportsEmojis.length
+      );
+    }, 10000); // 10 seconds
+
+    return () => clearInterval(interval);
+  }, [sportsEmojis.length]);
 
   const checkServerHealth = async () => {
     try {
@@ -84,7 +110,7 @@ function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <h1>⚽ Stats Management System</h1>
+        <h1>{sportsEmojis[currentEmojiIndex]} Stats Management System</h1>
         <div className="server-status">
           <span
             className="status-indicator"

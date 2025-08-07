@@ -22,20 +22,18 @@ CREATE TABLE IF NOT EXISTS player (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(first_name, last_name, date_of_birth) -- Prevent duplicate first_name/last_name/date_of_birth combinations
 );
--- Create player_stats table
-CREATE TABLE IF NOT EXISTS player_stat (
+-- Create team_player junction table
+CREATE TABLE IF NOT EXISTS team_player (
     id SERIAL PRIMARY KEY,
     player_id INTEGER REFERENCES player(id) ON DELETE CASCADE,
-    season VARCHAR(20) NOT NULL,
-    games_played INTEGER DEFAULT 0,
-    goals INTEGER DEFAULT 0,
-    assists INTEGER DEFAULT 0,
-    yellow_cards INTEGER DEFAULT 0,
-    red_cards INTEGER DEFAULT 0,
-    minutes_played INTEGER DEFAULT 0,
+    team_id INTEGER REFERENCES team(id) ON DELETE CASCADE,
+    jersey_number INTEGER NOT NULL,
+    position VARCHAR(20) NOT NULL CHECK (position IN ('Forward', 'Defence', 'Goalie')),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(player_id, season)
+    UNIQUE(team_id, jersey_number),
+    -- Prevent duplicate jersey numbers within same team
+    UNIQUE(player_id, team_id) -- Prevent duplicate player-team assignments
 );
 -- Insert sample data
 INSERT INTO team (city, name, level, season, sport)
@@ -124,17 +122,20 @@ VALUES (
         'Ramos',
         '1986-03-30'
     ) ON CONFLICT (first_name, last_name, date_of_birth) DO NOTHING;
-INSERT INTO player_stat (
+INSERT INTO team_player (
         player_id,
-        season,
-        games_played,
-        goals,
-        assists,
-        minutes_played
+        team_id,
+        jersey_number,
+        position
     )
-VALUES (1, '2023-24', 25, 12, 8, 2100),
-    (2, '2023-24', 28, 6, 14, 2400),
-    (3, '2023-24', 30, 18, 4, 2600),
-    (4, '2023-24', 32, 4, 12, 2800),
-    (5, '2023-24', 29, 15, 9, 2500),
-    (6, '2023-24', 31, 3, 11, 2700) ON CONFLICT (player_id, season) DO NOTHING;
+VALUES (1, 1, 10, 'Forward'),
+    (2, 1, 1, 'Goalie'),
+    (3, 1, 5, 'Defence'),
+    (4, 2, 9, 'Forward'),
+    (5, 2, 1, 'Goalie'),
+    (6, 2, 3, 'Defence'),
+    (7, 3, 9, 'Forward'),
+    (8, 3, 1, 'Goalie'),
+    (9, 3, 4, 'Defence'),
+    -- Example: Player 1 (Marcus Rashford) also plays for team 2 with different jersey number
+    (1, 2, 7, 'Forward') ON CONFLICT (player_id, team_id) DO NOTHING;

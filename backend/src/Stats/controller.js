@@ -1,5 +1,5 @@
 import client from "../../database.js";
-import { teamQueries, playerQueries, statsQueries, utilityQueries } from "./queries.js";
+import { teamQueries, playerQueries, teamPlayerQueries, statsQueries, utilityQueries } from "./queries.js";
 
 // ==================== TEAMS CONTROLLER ====================
 export const teamsController = {
@@ -328,6 +328,183 @@ export const playersController = {
       res.status(500).json({
         success: false,
         error: "Failed to delete player"
+      });
+    }
+  }
+};
+
+// ==================== TEAM-PLAYER CONTROLLER ====================
+export const teamPlayerController = {
+  // CREATE - assign player to team
+  assignPlayerToTeam: async (req, res) => {
+    try {
+      const { player_id, team_id, jersey_number, position } = req.body;
+      
+      if (!player_id || !team_id || !jersey_number || !position) {
+        return res.status(400).json({ 
+          success: false, 
+          error: "Player ID, team ID, jersey number, and position are required" 
+        });
+      }
+
+      // Validate position
+      if (!['Forward', 'Defence', 'Goalie'].includes(position)) {
+        return res.status(400).json({ 
+          success: false, 
+          error: "Position must be 'Forward', 'Defence', or 'Goalie'" 
+        });
+      }
+
+      const result = await client.query(teamPlayerQueries.assignPlayerToTeam, [
+        player_id, team_id, jersey_number, position
+      ]);
+
+      res.status(201).json({
+        success: true,
+        message: "Player assigned to team successfully",
+        assignment: result.rows[0]
+      });
+    } catch (error) {
+      console.error("Error assigning player to team:", error);
+      res.status(500).json({
+        success: false,
+        error: error.code === '23505' ? 
+          (error.constraint?.includes('jersey_number') ? 
+            "Jersey number already taken for this team" : 
+            "Player already assigned to this team") : 
+          "Failed to assign player to team"
+      });
+    }
+  },
+
+  // READ - get players by team
+  getPlayersByTeam: async (req, res) => {
+    try {
+      const { teamId } = req.params;
+      const result = await client.query(teamPlayerQueries.getPlayersByTeam, [teamId]);
+
+      res.json({
+        success: true,
+        count: result.rows.length,
+        players: result.rows
+      });
+    } catch (error) {
+      console.error("Error fetching team players:", error);
+      res.status(500).json({
+        success: false,
+        error: "Failed to fetch team players"
+      });
+    }
+  },
+
+  // READ - get teams by player
+  getTeamsByPlayer: async (req, res) => {
+    try {
+      const { playerId } = req.params;
+      const result = await client.query(teamPlayerQueries.getTeamsByPlayer, [playerId]);
+
+      res.json({
+        success: true,
+        count: result.rows.length,
+        teams: result.rows
+      });
+    } catch (error) {
+      console.error("Error fetching player teams:", error);
+      res.status(500).json({
+        success: false,
+        error: "Failed to fetch player teams"
+      });
+    }
+  },
+
+  // READ - get all team-player assignments
+  getAllAssignments: async (req, res) => {
+    try {
+      const result = await client.query(teamPlayerQueries.getAllTeamPlayerAssignments);
+
+      res.json({
+        success: true,
+        count: result.rows.length,
+        assignments: result.rows
+      });
+    } catch (error) {
+      console.error("Error fetching assignments:", error);
+      res.status(500).json({
+        success: false,
+        error: "Failed to fetch assignments"
+      });
+    }
+  },
+
+  // UPDATE - update player team assignment
+  updateAssignment: async (req, res) => {
+    try {
+      const { playerId, teamId } = req.params;
+      const { jersey_number, position } = req.body;
+
+      if (!jersey_number || !position) {
+        return res.status(400).json({ 
+          success: false, 
+          error: "Jersey number and position are required" 
+        });
+      }
+
+      // Validate position
+      if (!['Forward', 'Defence', 'Goalie'].includes(position)) {
+        return res.status(400).json({ 
+          success: false, 
+          error: "Position must be 'Forward', 'Defence', or 'Goalie'" 
+        });
+      }
+
+      const result = await client.query(teamPlayerQueries.updatePlayerTeamAssignment, [
+        playerId, teamId, jersey_number, position
+      ]);
+
+      if (result.rows.length === 0) {
+        return res.status(404).json({
+          success: false,
+          error: "Player assignment not found"
+        });
+      }
+
+      res.json({
+        success: true,
+        message: "Assignment updated successfully",
+        assignment: result.rows[0]
+      });
+    } catch (error) {
+      console.error("Error updating assignment:", error);
+      res.status(500).json({
+        success: false,
+        error: error.code === '23505' ? "Jersey number already taken for this team" : "Failed to update assignment"
+      });
+    }
+  },
+
+  // DELETE - remove player from team
+  removePlayerFromTeam: async (req, res) => {
+    try {
+      const { playerId, teamId } = req.params;
+      const result = await client.query(teamPlayerQueries.removePlayerFromTeam, [playerId, teamId]);
+
+      if (result.rows.length === 0) {
+        return res.status(404).json({
+          success: false,
+          error: "Player assignment not found"
+        });
+      }
+
+      res.json({
+        success: true,
+        message: "Player removed from team successfully",
+        assignment: result.rows[0]
+      });
+    } catch (error) {
+      console.error("Error removing player from team:", error);
+      res.status(500).json({
+        success: false,
+        error: "Failed to remove player from team"
       });
     }
   }

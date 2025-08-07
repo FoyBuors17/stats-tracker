@@ -53,6 +53,29 @@ export const playersApi = {
   delete: (id) => api.delete(`/players/${id}`),
 };
 
+// ==================== TEAM-PLAYER API ====================
+export const teamPlayerApi = {
+  // Assign player to team
+  assignToTeam: (assignmentData) => api.post('/team-player', assignmentData),
+  
+  // Get all team-player assignments
+  getAllAssignments: () => api.get('/team-player'),
+  
+  // Get players by team
+  getPlayersByTeam: (teamId) => api.get(`/team-player/team/${teamId}`),
+  
+  // Get teams by player
+  getTeamsByPlayer: (playerId) => api.get(`/team-player/player/${playerId}`),
+  
+  // Update player team assignment
+  updateAssignment: (playerId, teamId, assignmentData) => 
+    api.put(`/team-player/${playerId}/${teamId}`, assignmentData),
+  
+  // Remove player from team
+  removeFromTeam: (playerId, teamId) => 
+    api.delete(`/team-player/${playerId}/${teamId}`),
+};
+
 // ==================== STATS API ====================
 export const statsApi = {
   // Get all stats
