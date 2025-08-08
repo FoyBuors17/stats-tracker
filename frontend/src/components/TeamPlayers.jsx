@@ -313,7 +313,19 @@ const TeamPlayersComponent = ({ teamId, teamName, onPlayerSelect }) => {
               </tr>
             ) : (
               teamPlayers
-                .sort((a, b) => a.jersey_number - b.jersey_number)
+                .sort((a, b) => {
+                  // Define position priority (Defence first, then Forward, then Goalie)
+                  const positionOrder = { Defence: 1, Forward: 2, Goalie: 3 };
+
+                  // First sort by position
+                  const positionDiff =
+                    (positionOrder[a.position] || 999) -
+                    (positionOrder[b.position] || 999);
+                  if (positionDiff !== 0) return positionDiff;
+
+                  // Then sort by jersey number within the same position
+                  return a.jersey_number - b.jersey_number;
+                })
                 .map((player) => (
                   <tr key={`${player.player_id}-${teamId}`}>
                     <td className="jersey-number">#{player.jersey_number}</td>

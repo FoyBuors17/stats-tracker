@@ -121,6 +121,15 @@ router.post("/game-player", gamePlayerController.assignPlayerToGame);
 // GET /api/v1/Stats/game-player/game/:gameId - Get players by game
 router.get("/game-player/game/:gameId", gamePlayerController.getPlayersByGame);
 
+// GET /api/v1/Stats/game-player/game/:gameId/starting-goalie - Get starting goalie for game
+router.get("/game-player/game/:gameId/starting-goalie", gamePlayerController.getStartingGoalieByGame);
+
+// PUT /api/v1/Stats/game-player/:gameId/:playerId/starting-goalie - Set starting goalie
+router.put("/game-player/:gameId/:playerId/starting-goalie", gamePlayerController.setStartingGoalie);
+
+// PUT /api/v1/Stats/game-player/game/:gameId/starting-goalie/clear - Clear starting goalie
+router.put("/game-player/game/:gameId/starting-goalie/clear", gamePlayerController.clearStartingGoalie);
+
 // DELETE /api/v1/Stats/game-player/:gameId/:playerId - Remove player from game
 router.delete("/game-player/:gameId/:playerId", gamePlayerController.removePlayerFromGame);
 

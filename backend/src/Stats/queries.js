@@ -215,8 +215,8 @@ export const teamPlayerQueries = {
 export const gameQueries = {
   // CREATE
   createGame: `
-    INSERT INTO game (team_id, date, home_away, game_type, opponent, goals_for, goals_against)
-    VALUES ($1, $2, $3, $4, $5, $6, $7)
+    INSERT INTO game (team_id, date, home_away, game_type, opponent, goals_for, goals_against, period_1_length, period_2_length, period_3_length, ot_length)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
     RETURNING *
   `,
 
@@ -273,7 +273,9 @@ export const gameQueries = {
   updateGame: `
     UPDATE game 
     SET date = $2, home_away = $3, game_type = $4, opponent = $5, 
-        goals_for = $6, goals_against = $7, updated_at = CURRENT_TIMESTAMP
+        goals_for = $6, goals_against = $7, period_1_length = $8, 
+        period_2_length = $9, period_3_length = $10, ot_length = $11, 
+        updated_at = CURRENT_TIMESTAMP
     WHERE id = $1
     RETURNING *
   `,
@@ -329,8 +331,8 @@ export const opponentQueries = {
 // ==================== GAME PLAYER QUERIES ====================
 export const gamePlayerQueries = {
   assignPlayerToGame: `
-    INSERT INTO game_player (game_id, player_id)
-    VALUES ($1, $2)
+    INSERT INTO game_player (game_id, player_id, is_starting_goalie)
+    VALUES ($1, $2, $3)
     RETURNING *
   `,
 
@@ -343,9 +345,39 @@ export const gamePlayerQueries = {
       tp.position
     FROM game_player gp
     JOIN player p ON gp.player_id = p.id
-    LEFT JOIN team_player tp ON p.id = tp.player_id
+    JOIN game g ON gp.game_id = g.id
+    LEFT JOIN team_player tp ON p.id = tp.player_id AND tp.team_id = g.team_id
     WHERE gp.game_id = $1
     ORDER BY tp.jersey_number ASC
+  `,
+
+  getStartingGoalieByGame: `
+    SELECT 
+      gp.*,
+      p.first_name,
+      p.last_name,
+      tp.jersey_number,
+      tp.position
+    FROM game_player gp
+    JOIN player p ON gp.player_id = p.id
+    JOIN game g ON gp.game_id = g.id
+    LEFT JOIN team_player tp ON p.id = tp.player_id AND tp.team_id = g.team_id
+    WHERE gp.game_id = $1 AND gp.is_starting_goalie = TRUE
+    LIMIT 1
+  `,
+
+  updatePlayerGameStatus: `
+    UPDATE game_player 
+    SET is_starting_goalie = $3
+    WHERE game_id = $1 AND player_id = $2
+    RETURNING *
+  `,
+
+  clearStartingGoalie: `
+    UPDATE game_player 
+    SET is_starting_goalie = FALSE
+    WHERE game_id = $1 AND is_starting_goalie = TRUE
+    RETURNING *
   `,
 
   removePlayerFromGame: `

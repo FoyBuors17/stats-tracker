@@ -515,7 +515,10 @@ export const gameController = {
   // CREATE game
   createGame: async (req, res) => {
     try {
-      const { team_id, date, home_away, game_type, opponent, goals_for, goals_against } = req.body;
+      const { 
+        team_id, date, home_away, game_type, opponent, goals_for, goals_against,
+        period_1_length, period_2_length, period_3_length, ot_length 
+      } = req.body;
       
       if (!team_id || !date || !home_away || !game_type || !opponent) {
         return res.status(400).json({ 
@@ -532,8 +535,26 @@ export const gameController = {
         });
       }
 
+      // Validate period lengths (must be non-negative integers)
+      const periods = {
+        period_1_length: parseInt(period_1_length) || 0,
+        period_2_length: parseInt(period_2_length) || 0,
+        period_3_length: parseInt(period_3_length) || 0,
+        ot_length: parseInt(ot_length) || 0
+      };
+
+      for (const [key, value] of Object.entries(periods)) {
+        if (value < 0 || !Number.isInteger(value) || isNaN(value)) {
+          return res.status(400).json({ 
+            success: false, 
+            error: `${key.replace('_', ' ')} must be a non-negative integer` 
+          });
+        }
+      }
+
       const result = await client.query(gameQueries.createGame, [
-        team_id, date, home_away, game_type, opponent, goals_for || 0, goals_against || 0
+        team_id, date, home_away, game_type, opponent, goals_for || 0, goals_against || 0,
+        periods.period_1_length, periods.period_2_length, periods.period_3_length, periods.ot_length
       ]);
 
       res.status(201).json({
@@ -645,7 +666,10 @@ export const gameController = {
   updateGame: async (req, res) => {
     try {
       const { id } = req.params;
-      const { date, home_away, game_type, opponent, goals_for, goals_against } = req.body;
+      const { 
+        date, home_away, game_type, opponent, goals_for, goals_against,
+        period_1_length, period_2_length, period_3_length, ot_length 
+      } = req.body;
 
       if (!date || !home_away || !game_type || !opponent) {
         return res.status(400).json({ 
@@ -654,8 +678,26 @@ export const gameController = {
         });
       }
 
+      // Validate period lengths (must be non-negative integers)
+      const periods = {
+        period_1_length: parseInt(period_1_length) || 0,
+        period_2_length: parseInt(period_2_length) || 0,
+        period_3_length: parseInt(period_3_length) || 0,
+        ot_length: parseInt(ot_length) || 0
+      };
+
+      for (const [key, value] of Object.entries(periods)) {
+        if (value < 0 || !Number.isInteger(value) || isNaN(value)) {
+          return res.status(400).json({ 
+            success: false, 
+            error: `${key.replace('_', ' ')} must be a non-negative integer` 
+          });
+        }
+      }
+
       const result = await client.query(gameQueries.updateGame, [
-        id, date, home_away, game_type, opponent, goals_for || 0, goals_against || 0
+        id, date, home_away, game_type, opponent, goals_for || 0, goals_against || 0,
+        periods.period_1_length, periods.period_2_length, periods.period_3_length, periods.ot_length
       ]);
 
       if (result.rows.length === 0) {
@@ -801,7 +843,7 @@ export const opponentController = {
 export const gamePlayerController = {
   assignPlayerToGame: async (req, res) => {
     try {
-      const { game_id, player_id } = req.body;
+      const { game_id, player_id, is_starting_goalie } = req.body;
       
       if (!game_id || !player_id) {
         return res.status(400).json({ 
@@ -810,7 +852,11 @@ export const gamePlayerController = {
         });
       }
 
-      const result = await client.query(gamePlayerQueries.assignPlayerToGame, [game_id, player_id]);
+      const result = await client.query(gamePlayerQueries.assignPlayerToGame, [
+        game_id, 
+        player_id, 
+        is_starting_goalie || false
+      ]);
 
       res.status(201).json({
         success: true,
@@ -867,6 +913,79 @@ export const gamePlayerController = {
       res.status(500).json({
         success: false,
         error: "Failed to remove player from game"
+      });
+    }
+  },
+
+  getStartingGoalieByGame: async (req, res) => {
+    try {
+      const { gameId } = req.params;
+      const result = await client.query(gamePlayerQueries.getStartingGoalieByGame, [gameId]);
+
+      res.json({
+        success: true,
+        startingGoalie: result.rows[0] || null
+      });
+    } catch (error) {
+      console.error("Error fetching starting goalie:", error);
+      res.status(500).json({
+        success: false,
+        error: "Failed to fetch starting goalie"
+      });
+    }
+  },
+
+  setStartingGoalie: async (req, res) => {
+    try {
+      const { gameId, playerId } = req.params;
+      
+      // First clear any existing starting goalie for this game
+      await client.query(gamePlayerQueries.clearStartingGoalie, [gameId]);
+      
+      // Then set the new starting goalie
+      const result = await client.query(gamePlayerQueries.updatePlayerGameStatus, [
+        gameId, 
+        playerId, 
+        true
+      ]);
+
+      if (result.rows.length === 0) {
+        return res.status(404).json({
+          success: false,
+          error: "Player assignment not found"
+        });
+      }
+
+      res.json({
+        success: true,
+        message: "Starting goalie set successfully",
+        assignment: result.rows[0]
+      });
+    } catch (error) {
+      console.error("Error setting starting goalie:", error);
+      res.status(500).json({
+        success: false,
+        error: "Failed to set starting goalie"
+      });
+    }
+  },
+
+  clearStartingGoalie: async (req, res) => {
+    try {
+      const { gameId } = req.params;
+      
+      const result = await client.query(gamePlayerQueries.clearStartingGoalie, [gameId]);
+
+      res.json({
+        success: true,
+        message: "Starting goalie cleared successfully",
+        clearedCount: result.rows.length
+      });
+    } catch (error) {
+      console.error("Error clearing starting goalie:", error);
+      res.status(500).json({
+        success: false,
+        error: "Failed to clear starting goalie"
       });
     }
   }

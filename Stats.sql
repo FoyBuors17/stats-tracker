@@ -32,6 +32,10 @@ CREATE TABLE IF NOT EXISTS game (
     opponent VARCHAR(100) NOT NULL,
     goals_for INTEGER DEFAULT 0,
     goals_against INTEGER DEFAULT 0,
+    period_1_length INTEGER DEFAULT 0,
+    period_2_length INTEGER DEFAULT 0,
+    period_3_length INTEGER DEFAULT 0,
+    ot_length INTEGER DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -52,6 +56,7 @@ CREATE TABLE IF NOT EXISTS game_player (
     id SERIAL PRIMARY KEY,
     game_id INTEGER REFERENCES game(id) ON DELETE CASCADE,
     player_id INTEGER REFERENCES player(id) ON DELETE CASCADE,
+    is_starting_goalie BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(game_id, player_id) -- Prevent duplicate player assignments to same game
 );
@@ -196,7 +201,11 @@ INSERT INTO game (
         game_type,
         opponent,
         goals_for,
-        goals_against
+        goals_against,
+        period_1_length,
+        period_2_length,
+        period_3_length,
+        ot_length
     )
 VALUES (
         1,
@@ -205,7 +214,11 @@ VALUES (
         'Regular Season',
         'Rangers',
         3,
-        2
+        2,
+        20,
+        20,
+        20,
+        0
     ),
     (
         1,
@@ -214,7 +227,11 @@ VALUES (
         'Regular Season',
         'Bruins',
         1,
-        4
+        4,
+        20,
+        20,
+        20,
+        0
     ),
     (
         1,
@@ -223,7 +240,11 @@ VALUES (
         'Playoff',
         'Canadiens',
         5,
-        1
+        1,
+        20,
+        20,
+        20,
+        5
     ),
     (
         2,
@@ -232,7 +253,11 @@ VALUES (
         'Regular Season',
         'Flyers',
         2,
-        3
+        3,
+        20,
+        20,
+        20,
+        0
     ),
     (
         2,
@@ -241,27 +266,36 @@ VALUES (
         'Exhibition',
         'Penguins',
         4,
-        2
+        2,
+        20,
+        20,
+        20,
+        0
     );
 -- Insert sample game-player assignments
-INSERT INTO game_player (game_id, player_id)
-VALUES (1, 1),
-    (1, 2),
-    (1, 3),
+INSERT INTO game_player (game_id, player_id, is_starting_goalie)
+VALUES (1, 1, TRUE),
+    -- Player 1 is starting goalie for Game 1
+    (1, 2, FALSE),
+    (1, 3, FALSE),
     -- Game 1 players
-    (2, 1),
-    (2, 3),
-    (2, 4),
+    (2, 1, TRUE),
+    -- Player 1 is starting goalie for Game 2
+    (2, 3, FALSE),
+    (2, 4, FALSE),
     -- Game 2 players
-    (3, 2),
-    (3, 4),
-    (3, 5),
+    (3, 2, FALSE),
+    (3, 4, FALSE),
+    (3, 5, TRUE),
+    -- Player 5 is starting goalie for Game 3
     -- Game 3 players
-    (4, 6),
-    (4, 7),
-    (4, 8),
+    (4, 6, FALSE),
+    (4, 7, FALSE),
+    (4, 8, TRUE),
+    -- Player 8 is starting goalie for Game 4
     -- Game 4 players
-    (5, 7),
-    (5, 8),
-    (5, 9) ON CONFLICT (game_id, player_id) DO NOTHING;
+    (5, 7, FALSE),
+    (5, 8, TRUE),
+    -- Player 8 is starting goalie for Game 5
+    (5, 9, FALSE) ON CONFLICT (game_id, player_id) DO NOTHING;
 -- Game 5 players

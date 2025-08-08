@@ -126,6 +126,17 @@ export const gamePlayerApi = {
   // Get players by game
   getPlayersByGame: (gameId) => api.get(`/game-player/game/${gameId}`),
   
+  // Get starting goalie for game
+  getStartingGoalie: (gameId) => api.get(`/game-player/game/${gameId}/starting-goalie`),
+  
+  // Set starting goalie for game
+  setStartingGoalie: (gameId, playerId) => 
+    api.put(`/game-player/${gameId}/${playerId}/starting-goalie`),
+  
+  // Clear starting goalie for game
+  clearStartingGoalie: (gameId) => 
+    api.put(`/game-player/game/${gameId}/starting-goalie/clear`),
+  
   // Remove player from game
   removeFromGame: (gameId, playerId) => 
     api.delete(`/game-player/${gameId}/${playerId}`),

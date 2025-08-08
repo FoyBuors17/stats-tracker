@@ -20,6 +20,7 @@ const GamesComponent = ({ teamId, teamName }) => {
   const [selectedGameForPlayers, setSelectedGameForPlayers] = useState(null);
   const [gamePlayers, setGamePlayers] = useState([]);
   const [allGamePlayers, setAllGamePlayers] = useState({});
+  const [allStartingGoalies, setAllStartingGoalies] = useState({});
   const [showLineupModal, setShowLineupModal] = useState(false);
   const [selectedGameLineup, setSelectedGameLineup] = useState(null);
   const [startingGoalie, setStartingGoalie] = useState(null);
@@ -28,6 +29,10 @@ const GamesComponent = ({ teamId, teamName }) => {
     home_away: "",
     game_type: "",
     opponent: "",
+    period_1_length: 20,
+    period_2_length: 20,
+    period_3_length: 20,
+    ot_length: 0,
   });
 
   // Stats calculations
@@ -73,6 +78,7 @@ const GamesComponent = ({ teamId, teamName }) => {
 
       // Load players for each game
       await loadAllGamePlayers(gamesData);
+      await loadAllStartingGoalies(gamesData);
 
       setError(null);
     } catch (err) {
@@ -100,6 +106,34 @@ const GamesComponent = ({ teamId, teamName }) => {
       setAllGamePlayers(gamePlayersMap);
     } catch (err) {
       console.error("Error loading all game players:", err);
+    }
+  };
+
+  const loadAllStartingGoalies = async (gamesData) => {
+    try {
+      const goaliesMap = {};
+
+      for (const game of gamesData) {
+        try {
+          const response = await gamePlayerApi.getStartingGoalie(game.id);
+          goaliesMap[game.id] = response.data.startingGoalie || null;
+          console.log(
+            `Game ${game.id} starting goalie:`,
+            response.data.startingGoalie
+          );
+        } catch (err) {
+          console.error(
+            `Error loading starting goalie for game ${game.id}:`,
+            err
+          );
+          goaliesMap[game.id] = null;
+        }
+      }
+
+      console.log("All starting goalies loaded:", goaliesMap);
+      setAllStartingGoalies(goaliesMap);
+    } catch (err) {
+      console.error("Error loading all starting goalies:", err);
     }
   };
 
@@ -162,6 +196,10 @@ const GamesComponent = ({ teamId, teamName }) => {
       home_away: game.home_away,
       game_type: game.game_type,
       opponent: game.opponent,
+      period_1_length: game.period_1_length || 20,
+      period_2_length: game.period_2_length || 20,
+      period_3_length: game.period_3_length || 20,
+      ot_length: game.ot_length || 0,
     });
     setShowForm(true);
   };
@@ -178,10 +216,22 @@ const GamesComponent = ({ teamId, teamName }) => {
     }
   };
 
-  const handleAddPlayers = (game) => {
+  const handleAddPlayers = async (game) => {
     setSelectedGameForPlayers(game);
-    loadGamePlayers(game.id);
-    setStartingGoalie(null); // Reset starting goalie selection
+    await loadGamePlayers(game.id);
+
+    // Load current starting goalie for this game
+    try {
+      const response = await gamePlayerApi.getStartingGoalie(game.id);
+      const currentStartingGoalie = response.data.startingGoalie;
+      setStartingGoalie(
+        currentStartingGoalie ? currentStartingGoalie.player_id : null
+      );
+    } catch (err) {
+      console.error("Error loading current starting goalie:", err);
+      setStartingGoalie(null);
+    }
+
     setShowPlayerModal(true);
   };
 
@@ -200,6 +250,7 @@ const GamesComponent = ({ teamId, teamName }) => {
       await loadGamePlayers(selectedGameForPlayers.id);
       // Update the all game players data
       await loadAllGamePlayers(games);
+      await loadAllStartingGoalies(games);
     } catch (err) {
       console.error("Error toggling player:", err);
     }
@@ -211,9 +262,52 @@ const GamesComponent = ({ teamId, teamName }) => {
       home_away: "",
       game_type: "",
       opponent: "",
+      period_1_length: 20,
+      period_2_length: 20,
+      period_3_length: 20,
+      ot_length: 0,
     });
     setEditingGame(null);
     setShowForm(false);
+  };
+
+  const handleSaveLineup = async () => {
+    try {
+      console.log("=== SAVING LINEUP ===");
+      console.log("Selected game:", selectedGameForPlayers.id);
+      console.log("Starting goalie to save:", startingGoalie);
+
+      // Always clear existing starting goalie first
+      console.log("Clearing existing starting goalie...");
+      const clearResult = await gamePlayerApi.clearStartingGoalie(
+        selectedGameForPlayers.id
+      );
+      console.log("Clear result:", clearResult);
+
+      // If a starting goalie is selected, set them as starting goalie via API
+      if (startingGoalie) {
+        console.log("Setting new starting goalie:", startingGoalie);
+        const setResult = await gamePlayerApi.setStartingGoalie(
+          selectedGameForPlayers.id,
+          startingGoalie
+        );
+        console.log("Set result:", setResult);
+      } else {
+        console.log("No starting goalie selected, skipping set operation");
+      }
+
+      // Reload data to get updated lineup info
+      console.log("Reloading data...");
+      await loadAllGamePlayers(games);
+      await loadAllStartingGoalies(games);
+      console.log("=== SAVE COMPLETE ===");
+
+      // Close modal
+      closePlayerModal();
+    } catch (err) {
+      console.error("Error saving lineup:", err);
+      setError("Failed to save lineup");
+    }
   };
 
   const closePlayerModal = () => {
@@ -306,7 +400,12 @@ const GamesComponent = ({ teamId, teamName }) => {
   };
 
   const handleStartingGoalieToggle = (playerId) => {
-    setStartingGoalie(startingGoalie === playerId ? null : playerId);
+    console.log("=== STARTING GOALIE TOGGLE ===");
+    console.log("Player ID:", playerId);
+    console.log("Current starting goalie:", startingGoalie);
+    const newStartingGoalie = startingGoalie === playerId ? null : playerId;
+    console.log("New starting goalie:", newStartingGoalie);
+    setStartingGoalie(newStartingGoalie);
   };
 
   const getGameResult = (goalsFor, goalsAgainst) => {
@@ -490,6 +589,67 @@ const GamesComponent = ({ teamId, teamName }) => {
             </div>
           </div>
 
+          <div className="form-section">
+            <h4>⏱️ Period Lengths (in minutes)</h4>
+            <div className="form-row">
+              <div className="form-group">
+                <label>1st Period</label>
+                <input
+                  type="number"
+                  name="period_1_length"
+                  value={formData.period_1_length}
+                  onChange={handleInputChange}
+                  min="0"
+                  max="60"
+                  placeholder="20"
+                />
+              </div>
+
+              <div className="form-group">
+                <label>2nd Period</label>
+                <input
+                  type="number"
+                  name="period_2_length"
+                  value={formData.period_2_length}
+                  onChange={handleInputChange}
+                  min="0"
+                  max="60"
+                  placeholder="20"
+                />
+              </div>
+
+              <div className="form-group">
+                <label>3rd Period</label>
+                <input
+                  type="number"
+                  name="period_3_length"
+                  value={formData.period_3_length}
+                  onChange={handleInputChange}
+                  min="0"
+                  max="60"
+                  placeholder="20"
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Overtime</label>
+                <input
+                  type="number"
+                  name="ot_length"
+                  value={formData.ot_length}
+                  onChange={handleInputChange}
+                  min="0"
+                  max="30"
+                  placeholder="0"
+                />
+              </div>
+            </div>
+            <small className="form-help">
+              Enter the actual length of each period in minutes. Leave Overtime
+              as 0 if the game didn't go to OT.
+            </small>
+          </div>
+
           <div className="form-actions">
             <button type="submit" className="btn btn-success">
               {editingGame ? "Update Game" : "Create Game"}
@@ -515,6 +675,7 @@ const GamesComponent = ({ teamId, teamName }) => {
               <th>Opponent</th>
               <th>Score</th>
               <th>Result</th>
+              <th>Game Time</th>
               <th>Lineup</th>
               <th>Actions</th>
             </tr>
@@ -522,7 +683,7 @@ const GamesComponent = ({ teamId, teamName }) => {
           <tbody>
             {games.length === 0 ? (
               <tr>
-                <td colSpan="7" className="no-data">
+                <td colSpan="8" className="no-data">
                   No games found for {teamName}. Add your first game!
                 </td>
               </tr>
@@ -549,13 +710,40 @@ const GamesComponent = ({ teamId, teamName }) => {
                       {getGameResult(game.goals_for, game.goals_against)}
                     </span>
                   </td>
+                  <td className="game-time" title="Total game time in minutes">
+                    <span className="time-total">
+                      {(game.period_1_length || 0) +
+                        (game.period_2_length || 0) +
+                        (game.period_3_length || 0) +
+                        (game.ot_length || 0)}{" "}
+                      min
+                    </span>
+                  </td>
                   <td className="position-counts">
                     <button
                       className="lineup-summary-btn"
                       onClick={() => handleLineupButtonClick(game)}
                       title="Click to manage lineup for this game"
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        lineHeight: "1.2",
+                      }}
                     >
-                      {getLineupButtonText(game.id)}
+                      <div>{getLineupButtonText(game.id)}</div>
+                      {allStartingGoalies[game.id] && (
+                        <div
+                          style={{
+                            fontSize: "0.75em",
+                            color: "#666",
+                            marginTop: "2px",
+                          }}
+                        >
+                          {allStartingGoalies[game.id].first_name}{" "}
+                          {allStartingGoalies[game.id].last_name}
+                        </div>
+                      )}
                     </button>
                   </td>
                   <td className="actions">
@@ -622,9 +810,11 @@ const GamesComponent = ({ teamId, teamName }) => {
               width: "100vw",
               maxWidth: "100vw",
               maxHeight: "90vh",
-              overflow: "hidden",
+              overflow: "auto",
               position: "relative",
               margin: "0",
+              display: "flex",
+              flexDirection: "column",
             }}
           >
             <div
@@ -684,8 +874,24 @@ const GamesComponent = ({ teamId, teamName }) => {
                 ×
               </button>
             </div>
-            <div className="modal-content" style={{ padding: "20px" }}>
-              <div className="lineup-management">
+            <div
+              className="modal-content"
+              style={{
+                flex: 1,
+                overflow: "hidden",
+                display: "flex",
+                flexDirection: "column",
+                padding: "0",
+              }}
+            >
+              <div
+                className="lineup-management"
+                style={{
+                  flex: 1,
+                  overflow: "auto",
+                  padding: "0 20px",
+                }}
+              >
                 <div
                   className="current-lineup-summary"
                   style={{
@@ -948,6 +1154,7 @@ const GamesComponent = ({ teamId, teamName }) => {
                             );
                             const isStarting =
                               startingGoalie === player.player_id;
+
                             return (
                               <div
                                 key={player.player_id}
@@ -998,7 +1205,7 @@ const GamesComponent = ({ teamId, teamName }) => {
                                     {player.last_name}
                                   </span>
                                 </div>
-                                {isSelected && (
+                                {isSelected && player.position === "Goalie" && (
                                   <div
                                     style={{
                                       display: "flex",
@@ -1006,20 +1213,23 @@ const GamesComponent = ({ teamId, teamName }) => {
                                       marginLeft: "25px",
                                       cursor: "pointer",
                                     }}
-                                    onClick={() =>
+                                    onClick={(e) => {
+                                      e.stopPropagation();
                                       handleStartingGoalieToggle(
                                         player.player_id
-                                      )
-                                    }
+                                      );
+                                    }}
                                   >
                                     <input
                                       type="checkbox"
                                       checked={isStarting}
-                                      onChange={() =>
+                                      onChange={(e) => {
+                                        e.stopPropagation();
                                         handleStartingGoalieToggle(
                                           player.player_id
-                                        )
-                                      }
+                                        );
+                                      }}
+                                      onClick={(e) => e.stopPropagation()}
                                       style={{ marginRight: "8px" }}
                                     />
                                     <span
@@ -1073,7 +1283,7 @@ const GamesComponent = ({ teamId, teamName }) => {
                 </button>
                 <button
                   className="btn btn-primary"
-                  onClick={closePlayerModal}
+                  onClick={handleSaveLineup}
                   style={{
                     padding: "10px 20px",
                     border: "none",
